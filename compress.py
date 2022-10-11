@@ -99,7 +99,7 @@ class signal:
         if bscan is None:
             file_b = filedialog.askopenfilename()
         else:
-            file_b = ascan
+            file_b = bscan
 
         self.t_a, self.data_a = athena.ReadAScan(file_a)
         self.t_b, self.x, self.data_b = athena.ReadBScan(file_b)
@@ -123,6 +123,7 @@ class signal:
     def plot1d(self, data=None, t=None, i0=None, iend=None):
         if data is None:
             data = self.data_a
+            t = self.t_a
         fig = plt.figure()
         plt.plot(t[i0:iend], data[i0:iend])
         return fig
@@ -130,6 +131,8 @@ class signal:
     def plot2d(self, data=None, t=None, x=None,  MIN=None, MAX=None):
         if data is None:
             data = self.data_b
+            t = self.t_b
+            x = self.x
         fig = plt.figure()
         plt.pcolormesh(data, vmin=MIN, vmax=MAX)
         return fig
