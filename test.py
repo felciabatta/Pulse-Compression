@@ -22,17 +22,18 @@ root.withdraw()
 # %% Import Data
 
 bscan_filepath = filedialog.askopenfilename()
-t, x, data = Athena.ReadBScan(bscan_filepath)
+t, x, data = athena.ReadBScan(bscan_filepath)
 data = data
 
 pulse_filepath = filedialog.askopenfilename()
-t_p, data_p = Athena.ReadAScan(pulse_filepath)
+t_p, data_p = athena.ReadAScan(pulse_filepath)
 
 # %% Visualise Ascan
 
 i0 = None
-iend = len(data_p) #None #500 #
-plt.plot(t[i0:iend], data[i0:iend, 10])
+iend = None
+# iend = len(data_p)
+plt.plot(t[i0:iend], data[i0:iend, 25])
 
 # %% Visualise Ultrasound Pulse Bscan
 
@@ -41,6 +42,10 @@ plt.pcolormesh(data, vmin=.001, vmax=.01)
 # %% Visualise Barker Bscan
 
 plt.pcolormesh(data, vmin=0, vmax=.2)
+
+# %% Visualise Bscan Default
+
+plt.pcolormesh(data, vmin=-.1, vmax=.1)
 
 # %% Visualise Pulse
 i0 = None
@@ -56,21 +61,7 @@ for i in range(data.shape[1]):
 
 # plt.pcolormesh(out_signal[877:, :], vmin=0, vmax=50)
 plt.pcolormesh(out_signal, vmin=.001, vmax=.01)
+plt.pcolormesh(out_signal, vmin=None, vmax=None)
+plt.pcolormesh(out_signal, vmin=-.1, vmax=.1)
 
-# plt.plot(t, out_signal[:, 10])
-
-# %% Pulse-Compression (With Data Correction NOT NEEDED ANYMORE)
-# This issue was only for the no-noise data, but this is fixed now
-
-out_signal = np.repeat(np.zeros(data.shape), 2, axis=0)
-for i in range(data.shape[1]):
-    out_signal[:, i] = sg.correlate(
-        np.repeat(data[:, i], 2, axis=0), data_p, mode='same')/(0.1*len(data_p))
-
-# plt.pcolormesh(out_signal[877:, :], vmin=0, vmax=50)
-# plt.pcolormesh(out_signal, vmin=.001, vmax=.005)
-# plt.pcolormesh(out_signal, vmin=.0, vmax=.001)
-# plt.pcolormesh(out_signal)
-
-
-plt.plot(np.repeat(t, 2, axis=0), out_signal[:, 10])
+plt.plot(t, out_signal[:, 25])

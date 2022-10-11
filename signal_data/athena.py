@@ -17,8 +17,9 @@ def ReadAScan(filename):
 
     # get n. iterations, timestep, t0
     # note that nit do not include t0, whereas for the B-Scan, it does
+    # note *1e6 to account for unit error in data
     nit, dt, t0, _ = fid.readline().split()
-    nit, dt, t0 = int(nit), float(dt), float(t0)/1e9
+    nit, dt, t0 = int(nit), float(dt)*1e6, float(t0)/1e9
 
     # extract data
     data = np.array([float(l) for l in fid.readlines()])
