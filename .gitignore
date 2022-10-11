@@ -128,5 +128,13 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# OTHER
+#######
+ ADDED
+#######
+
+# other generic
 .DS_Store
+
+# personal
+signal_data/barker_2MHz_13/
+signal_data/golay/
