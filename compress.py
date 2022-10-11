@@ -20,6 +20,51 @@ root.withdraw()
 
 
 class signal:
+    """
+
+
+    Parameters
+    ----------
+    ascan : A-Scan .dat file, optional
+        1D data, usually the exitation *(input)* signal.
+        The default is None.
+    bscan : B-Scan .dat file, optional
+        2D data, received echo *(output)* signal. The default is None.
+    dataprompt : bool, optional
+        Asks for data. The default is True.
+
+    Examples
+    -------
+    Instantiate a signal object, and perform basic functions:
+
+    >>> # select A-Scan & B-Scan files, respectively, when prompted
+    >>> pulse = signal()
+
+    >>> # plot the A-Scan
+    >>> pulse.plot1d()
+
+    >>> # plot the B-Scan
+    >>> pulse.plot2d()
+
+    >>> # plot the results
+    >>> pulse.plot2d(pulse.results)
+
+    >>> # save .csv results; enter filename when prompted
+    >>> pulse.save_results()
+
+    To import existing .csv results:
+
+    >>> # select csv file when prompted
+    >>> pulse.load_results()
+
+    Notes
+    -----
+    Upon creating a signal object, and importing A/B-Scan data,
+    match filter results are immediately computed automatically.
+
+    *plot2d* has options to modify *MIN* and *MAX* values on colormap
+
+    """
     def __init__(self, ascan=None, bscan=None, dataprompt=True):
         """
 
@@ -34,36 +79,10 @@ class signal:
         dataprompt : bool, optional
             Asks for data. The default is True.
 
-        Examples
-        -------
-        Instantiate a signal object, and perform basic functions:
-
-        >>> # select A-Scan & B-Scan files, respectively, when prompted
-        >>> pulse = signal()
-
-        >>> # plot the A-Scan
-        >>> pulse.plot1d()
-
-        >>> # plot the B-Scan
-        >>> pulse.plot2d()
-
-        >>> # plot the results
-        >>> pulse.plot2d(pulse.results)
-
-        >>> # save .csv results; enter filename when prompted
-        >>> pulse.save_results()
-
-        To import existing .csv results:
-
-        >>> # select csv file when prompted
-        >>> pulse.load_results()
-
         Notes
         -----
         Upon creating a signal object, and importing A/B-Scan data,
         match filter results are immediately computed automatically.
-
-        *plot2d* has options to modify *MIN* and *MAX* values on colormap
 
         """
         if (ascan is None) and (bscan is None) and not dataprompt:
