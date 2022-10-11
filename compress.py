@@ -21,18 +21,18 @@ root.withdraw()
 
 class signal:
     def __init__(self, ascan=None, bscan=None, dataprompt=True):
-        if (ascan or bscan) or (not (ascan or bscan) and dataprompt):
+        if (ascan is None) and (bscan is None) and not dataprompt:
+            None
+        else:
             self.load_data(ascan, bscan)
 
-        pass
-
     def load_data(self, ascan=None, bscan=None):
-        if not ascan:
-            file_a = filedialog.askopenfilename()
+        if ascan is not None:
+            file_a = filedialog.askopenfilename(initialdir='signal_data/')
         else:
             file_a = ascan
 
-        if not bscan:
+        if bscan is not None:
             file_b = filedialog.askopenfilename()
         else:
             file_b = ascan
@@ -55,24 +55,28 @@ class signal:
                            mode='same')/(0.1*len(self.data_a))
         self.results = out
 
-    def plot1d(self, data, t=None, i0=None, iend=None):
+    def plot1d(self, data=None, t=None, i0=None, iend=None):
+        if data is not None:
+            data = self.data_a
         fig = plt.figure()
         plt.plot(t[i0:iend], data[i0:iend])
         return fig
 
-    def plot2d(self, data, t=None, x=None,  MIN=None, MAX=None):
+    def plot2d(self, data=None, t=None, x=None,  MIN=None, MAX=None):
+        if data is not None:
+            data = self.data_b
         fig = plt.figure()
         plt.pcolormesh(data, vmin=MIN, vmax=MAX)
         return fig
 
-    def save_data(self, data=None, filename=None):
-        if not data:
+    def save_results(self, data=None, filename=None):
+        if data is not None:
             data = self.results
         filepath = filedialog.asksaveasfilename(initialdir='signal_data/',
                                                 defaultextension='.csv')
         np.savetxt(filepath, data, delimiter=",")
 
     def load_results(self, filepath=None):
-        if not filepath:
+        if filepath is not None:
             filepath = filedialog.askopenfilename()
         results = np.genfromtxt(filepath)
