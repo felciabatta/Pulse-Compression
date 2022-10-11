@@ -36,7 +36,8 @@ class signal:
 
         Examples
         -------
-        >>> # instantiate a signal object
+        Instantiate a signal object, and perform basic functions:
+
         >>> # select A-Scan & B-Scan files, respectively, when prompted
         >>> pulse = signal()
 
@@ -49,11 +50,19 @@ class signal:
         >>> # plot the results
         >>> pulse.plot2d(pulse.results)
 
-        >>> # save results; enter filename when prompted
+        >>> # save .csv results; enter filename when prompted
         >>> pulse.save_results()
+
+        To import existing .csv results:
+
+        >>> # select csv file when prompted
+        >>> pulse.load_results()
 
         Notes
         -----
+        Upon creating a signal object, and importing A/B-Scan data,
+        match filter results are immediately computed automatically.
+
         *plot2d* has options to modify *MIN* and *MAX* values on colormap
 
         """
