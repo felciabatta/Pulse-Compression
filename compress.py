@@ -106,17 +106,26 @@ class signal:
 
         self.match()
 
-    def match(self):
-        out = np.zeros(self.data_b.shape)
-        for i in range(self.data_b.shape[1]):
-            out[:, i] = sg.correlate(self.data_b[:, i],
-                                     self.data_a,
-                                     mode='same')/(0.1*len(self.data_a))
+    def match(self, s1=None, s2=None):
+        if s1 is None:
+            s1 = self.data_b
+        if s2 is None:
+            s2 = self.data_a
+
+        out = np.zeros(s1.shape)
+        for i in range(s1.shape[1]):
+            out[:, i] = sg.correlate(s1[:, i], s2,
+                                     mode='same')/(0.1*len(s2))
         self.results = out
 
-    def match2d(self):
+    def match2d(self, s1=None, s2=None):
         # identical to match()
-        out = sg.correlate(self.data_b, self.data_a.reshape((-1,1)),
+        if s1 is None:
+            s1 = self.data_b
+        if s2 is None:
+            s2 = self.data_a
+
+        out = sg.correlate(s1, s2.reshape((-1,1)),
                            mode='same')/(0.1*len(self.data_a))
         self.results = out
 

@@ -49,7 +49,7 @@ plt.pcolormesh(data, vmin=-.1, vmax=.1)
 
 # %% Visualise Pulse
 i0 = None
-iend = 2000 #500
+iend = 2000  # 500
 plt.plot(t_p[:iend], data_p[:iend])
 
 # %% Pulse-Compression

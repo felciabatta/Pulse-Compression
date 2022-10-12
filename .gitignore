@@ -136,5 +136,5 @@ dmypy.json
 .DS_Store
 
 # personal
-signal_data/barker_2MHz_13/
-signal_data/golay/
+signal_data/barker_2MHz_13OLD/
+signal_data/golayOLD/
