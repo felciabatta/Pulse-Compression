@@ -104,13 +104,16 @@ class signal:
         self.t_a, self.data_a = athena.ReadAScan(file_a)
         self.t_b, self.x, self.data_b = athena.ReadBScan(file_b)
 
-        self.match()
+        self.match2d()
 
-    def match(self, s1=None, s2=None):
+    def match(self, remove_pulse=False, s1=None, s2=None):
         if s1 is None:
-            s1 = self.data_b
+            s1 = np.copy(self.data_b)
         if s2 is None:
-            s2 = self.data_a
+            s2 = np.copy(self.data_a)
+
+        if remove_pulse:
+            self.remove_excitation(s1, s2)
 
         out = np.zeros(s1.shape)
         for i in range(s1.shape[1]):
@@ -118,16 +121,25 @@ class signal:
                                      mode='same')/(0.1*len(s2))
         self.results = out
 
-    def match2d(self, s1=None, s2=None):
+    def match2d(self, remove_pulse=False, s1=None, s2=None):
         # identical to match()
         if s1 is None:
-            s1 = self.data_b
+            s1 = np.copy(self.data_b)
         if s2 is None:
-            s2 = self.data_a
+            s2 = np.copy(self.data_a)
+
+        if remove_pulse:
+            self.remove_excitation(s1, s2)
 
         out = sg.correlate(s1, s2.reshape((-1,1)),
                            mode='same')/(0.1*len(self.data_a))
         self.results = out
+
+    def remove_excitation(self, s1, s2, shift=0):
+        if shift == None:
+            shift = np.argmax(s1[:,1]) - np.argmax(s2)
+        s1[shift:shift+len(s2), :] = 0
+        pass
 
     def plot1d(self, data=None, t=None, i0=None, iend=None):
         if data is None:
