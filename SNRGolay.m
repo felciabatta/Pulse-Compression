@@ -50,7 +50,7 @@ for i=lag+2:length(y)
       
     end
      % If new value is a specified number of deviations away
-    if abs(y(i)-avgFilter(i-1)) > threshold*stdFilter(i-1)
+    if abs(y(i))-avgFilter(i-1) > threshold*stdFilter(i-1)
         
         peakAsign = 1;
         if y(i) > 0
@@ -84,24 +84,27 @@ for i=lag+2:length(y)
    
     changeCon(1,1)=changeCon(1,2);
     changeCon(1,2)=peakAsign;
-    PeakABS = [];
-    for c=(PeakVec)
-        cMat = cell2mat(c);
-        
-        PeakABS =  abs(cMat);
-        
-    end
+    avgFilter(i) = mean(abs(filteredY(i-lag:i)));
+    stdFilter(i) = std(abs(filteredY(i-lag:i)));
     
    
-    MeanPeak = mean(PeakABS);
-    avgFilter(i) = mean(filteredY(i-lag:i));
-    stdFilter(i) = std(filteredY(i-lag:i));
-    MeanSideLobes = sum((abs(Noise))/length(Noise));
-    SNR = MeanPeak/MeanSideLobes;
+    
  
     
 end
-cMat
+
+
+PeakABS = [];
+for p=PeakVec
+    Ptemp = max(abs([p{:}]));
+    PeakABS = [PeakABS,Ptemp];
+end
+PeakABS = abs([PeakVec{:}]);
+
+MeanPeak = mean(PeakABS);
+MeanSideLobes = sum((abs(Noise))/length(Noise));
+SNR = MeanPeak/MeanSideLobes;
+
 end
 
 % Done, now return results
