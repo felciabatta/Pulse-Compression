@@ -65,6 +65,7 @@ class signal:
     *plot2d* has options to modify *MIN* and *MAX* values on colormap
 
     """
+
     def __init__(self, ascan=None, bscan=None, dataprompt=True):
         """
 
@@ -106,14 +107,14 @@ class signal:
 
         self.match2d()
 
-    def match(self, remove_pulse=False, s1=None, s2=None):
+    def match(self, remove_pulse=False, s1=None, s2=None, delay=2, trim=0):
         if s1 is None:
             s1 = np.copy(self.data_b)
         if s2 is None:
             s2 = np.copy(self.data_a)
 
         if remove_pulse:
-            self.remove_excitation(s1, s2)
+            self.remove_excitation(s1, s2, delay=delay, trim=trim)
 
         out = np.zeros(s1.shape)
         for i in range(s1.shape[1]):
@@ -121,7 +122,7 @@ class signal:
                                      mode='same')/(0.1*len(s2))
         self.results = out
 
-    def match2d(self, remove_pulse=False, s1=None, s2=None):
+    def match2d(self, remove_pulse=False, s1=None, s2=None, delay=2, trim=0):
         # identical to match()
         if s1 is None:
             s1 = np.copy(self.data_b)
@@ -129,16 +130,21 @@ class signal:
             s2 = np.copy(self.data_a)
 
         if remove_pulse:
-            self.remove_excitation(s1, s2)
+            self.remove_excitation(s1, s2, delay=delay, trim=trim)
 
-        out = sg.correlate(s1, s2.reshape((-1,1)),
+        out = sg.correlate(s1, s2.reshape((-1, 1)),
                            mode='same')/(0.1*len(self.data_a))
         self.results = out
 
-    def remove_excitation(self, s1, s2, shift=0):
-        if shift == None:
-            shift = np.argmax(s1[:,1]) - np.argmax(s2)
-        s1[shift:shift+len(s2), :] = 0
+    def wien(self, signal=None):
+        if signal is None:
+            signal = self.results
+        self.results = sg.wiener(signal)
+
+    def remove_excitation(self, s1, s2, delay=2, trim=0):
+        if delay == None:
+            delay = np.argmax(s1[:, 1]) - np.argmax(s2)
+        s1[delay:delay+len(s2)+trim, :] = 0
         pass
 
     def plot1d(self, data=None, t=None, i0=None, iend=None):

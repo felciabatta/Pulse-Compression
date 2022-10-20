@@ -21,6 +21,7 @@ pulse.plot2d(pulse.results, MIN=0, MAX=0.04)
 pulse.plot1d(pulse.data_b[:, x], pulse.t_b)
 pulse.plot1d(pulse.results[:, x], pulse.t_b)
 
+
 # %% U.S. PULSE, 1MHz
 
 pulse1 = signal("signal_data/pulse_1MHznoise/pulse1mhz.dat",
@@ -62,41 +63,22 @@ chirpS.plot1d(chirpS.results[:, x], chirpS.t_b)
 chirpL = signal("signal_data/chirp_0822MHz_6u/longchirp.dat",
                 "signal_data/chirp_0822MHz_6u/bscan.dat")
 
-chirpL.match2d(remove_pulse=1)
+chirpL.match2d(remove_pulse=1, trim=-45)
 chirpL.plot1d()
 chirpL.plot2d(MIN=0, MAX=0.08)
 chirpL.plot2d(chirpL.results, MIN=0, MAX=0.2)
 chirpL.plot1d(chirpL.data_b[:, x], chirpL.t_b)
 chirpL.plot1d(chirpL.results[:, x], chirpL.t_b)
 
-# %% ... with Pulse Cancellation
-# iterate this, to eliminate more peaks
-
-CC = sg.correlate(chirpL.data_a, chirpL.data_a)
-N = len(CC)
-M = len(chirpL.results[:, x])
-n = np.argmax(CC)
-m = np.argmax(chirpL.results[:, x])
-p = np.max(CC)
-q = np.max(chirpL.results[:, x])
-pad1 = np.concatenate((np.zeros(N),
-                      chirpL.results[:, x],
-                      np.zeros(N)))
-pad2 = np.concatenate((np.zeros(N+m-n),
-                       CC*(q/p),
-                       np.zeros(M-m+n)))
-
-newresult = (pad1 - pad2)[N:N+M]
-
 # %% Barker 13, 1MHz
 
 bark1 = signal("signal_data/barker_1MHz_13/signalbarker13.dat",
                "signal_data/barker_1MHz_13/bscanbarker13.dat")
 
-# bark1.match2d(remove_pulse=1)
+# bark1.match2d(remove_pulse=1, trim=-300)
 bark1.plot1d()
 bark1.plot2d(MIN=0, MAX=0.2)
-bark1.plot2d(bark1.results, MIN=0, MAX=0.4)
+bark1.plot2d(abs(bark1.results), MIN=0, MAX=0.4)
 bark1.plot1d(bark1.data_b[:, x], bark1.t_b)
 bark1.plot1d(bark1.results[:, x], bark1.t_b)
 
@@ -106,9 +88,10 @@ bark2 = signal("signal_data/barker_2MHz_13/barker13.dat",
                "signal_data/barker_2MHz_13/bscanbarker13.dat")
 
 bark2.match2d(remove_pulse=1)
+# bark2.wien()
 bark2.plot1d()
 bark2.plot2d(MIN=0, MAX=0.2)
-bark2.plot2d(bark2.results, MIN=0.0, MAX=0.2)
+bark2.plot2d(bark2.results, MIN=0.0, MAX=0.10)
 bark2.plot1d(bark2.data_b[:, x], bark2.t_b)
 bark2.plot1d(bark2.results[:, x], bark2.t_b)
 
