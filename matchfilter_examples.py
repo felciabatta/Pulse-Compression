@@ -15,6 +15,7 @@ pulse = signal("signal_data/pulse_2MHznonoise/pulse2mhz.dat",
                "signal_data/pulse_2MHznonoise/bscan.dat")
 
 pulse.match2d(remove_pulse=1)
+
 pulse.plot1d()
 pulse.plot2d(MIN=0, MAX=0.04)
 pulse.plot2d(pulse.results, MIN=0, MAX=0.04)
@@ -28,6 +29,8 @@ pulse1 = signal("signal_data/pulse_1MHznoise/pulse1mhz.dat",
                 "signal_data/pulse_1MHznoise/bscanpulse1.dat")
 
 pulse1.match2d(remove_pulse=1)
+pulse1.wien(window=(100,10))
+
 pulse1.plot1d()
 pulse1.plot2d(MIN=0, MAX=0.08)
 pulse1.plot2d(pulse1.results, MIN=0, MAX=0.08)
@@ -39,7 +42,9 @@ pulse1.plot1d(pulse1.results[:, x], pulse1.t_b)
 pulse2 = signal("signal_data/pulse_2MHznoise/pulse2mhz.dat",
                 "signal_data/pulse_2MHznoise/bscanpulse2.dat")
 
-pulse2.match2d(remove_pulse=1)
+pulse2.match2d(remove_pulse=1, trim=80)
+pulse2.wien(window=(100,10))
+
 pulse2.plot1d()
 pulse2.plot2d(MIN=0, MAX=0.02)
 pulse2.plot2d(pulse2.results, MIN=0, MAX=0.02)
@@ -51,7 +56,10 @@ pulse2.plot1d(pulse2.results[:, x], pulse2.t_b)
 chirpS = signal("signal_data/chirp_0822MHz_2u/chirpsignal.dat",
                 "signal_data/chirp_0822MHz_2u/bscanchirp0822.dat")
 
-chirpS.match2d(remove_pulse=1)
+chirpS.match2d(remove_pulse=1, trim=100)
+chirpS.wien(window=(100,10))
+
+
 chirpS.plot1d()
 chirpS.plot2d(MIN=0, MAX=0.08)
 chirpS.plot2d(chirpS.results, MIN=0, MAX=0.2)
@@ -64,6 +72,8 @@ chirpL = signal("signal_data/chirp_0822MHz_6u/longchirp.dat",
                 "signal_data/chirp_0822MHz_6u/bscan.dat")
 
 chirpL.match2d(remove_pulse=1, trim=-45)
+chirpL.wien(window=(100,10))
+
 chirpL.plot1d()
 chirpL.plot2d(MIN=0, MAX=0.08)
 chirpL.plot2d(chirpL.results, MIN=0, MAX=0.2)
@@ -75,10 +85,13 @@ chirpL.plot1d(chirpL.results[:, x], chirpL.t_b)
 bark1 = signal("signal_data/barker_1MHz_13/signalbarker13.dat",
                "signal_data/barker_1MHz_13/bscanbarker13.dat")
 
-# bark1.match2d(remove_pulse=1, trim=-300)
+bark1.match2d(remove_pulse=1, trim=-300)
+bark1.results[:700,:]=0
+bark1.wien(window=(100,10))
+
 bark1.plot1d()
 bark1.plot2d(MIN=0, MAX=0.2)
-bark1.plot2d(abs(bark1.results), MIN=0, MAX=0.4)
+bark1.plot2d(bark1.results, MIN=0, MAX=0.4)
 bark1.plot1d(bark1.data_b[:, x], bark1.t_b)
 bark1.plot1d(bark1.results[:, x], bark1.t_b)
 
@@ -88,10 +101,12 @@ bark2 = signal("signal_data/barker_2MHz_13/barker13.dat",
                "signal_data/barker_2MHz_13/bscanbarker13.dat")
 
 bark2.match2d(remove_pulse=1)
-# bark2.wien()
+bark2.wien(window=(100,10))
+
 bark2.plot1d()
 bark2.plot2d(MIN=0, MAX=0.2)
 bark2.plot2d(bark2.results, MIN=0.0, MAX=0.10)
+x=42
 bark2.plot1d(bark2.data_b[:, x], bark2.t_b)
 bark2.plot1d(bark2.results[:, x], bark2.t_b)
 
@@ -101,28 +116,35 @@ bark2.plot1d(bark2.results[:, x], bark2.t_b)
 golay = signal("signal_data/golay/golay_a_l3_2.dat",
                "signal_data/golay/bscangolay2mhz_l3nc.dat")
 
-golay.match2d(remove_pulse=1)
-golay.plot1d()
-golay.plot2d(MIN=0, MAX=0.1)
-golay.plot2d(golay.results, MIN=0, MAX=0.2)
-golay.plot1d(golay.data_b[:, x], golay.t_b)
-golay.plot1d(golay.results[:, x], golay.t_b)
+gtrim=100
+
+golay.match2d(remove_pulse=1, trim=gtrim)
+# golay.wien()
+
+# golay.plot1d()
+# golay.plot2d(MIN=0, MAX=0.1)
+# golay.plot2d(golay.results, MIN=0, MAX=0.2)
+# golay.plot1d(golay.data_b[:, x], golay.t_b)
+# golay.plot1d(golay.results[:, x], golay.t_b)
 
 # complementary signal
 golayC = signal("signal_data/golay/golay_l3_2c.dat",
                 "signal_data/golay/bscangolay2mhz_l3c.dat")
 
-golayC.match2d(remove_pulse=1)
-golayC.plot1d()
-golayC.plot2d(MIN=0, MAX=0.1)
-golayC.plot2d(golayC.results, MIN=0, MAX=0.2)
-golayC.plot1d(golayC.data_b[:, x], golayC.t_b)
-golayC.plot1d(golayC.results[:, x], golayC.t_b)
+golayC.match2d(remove_pulse=1, trim=gtrim)
+# golayC.wien()
+
+# golayC.plot1d()
+# golayC.plot2d(MIN=0, MAX=0.1)
+# golayC.plot2d(golayC.results, MIN=0, MAX=0.2)
+# golayC.plot1d(golayC.data_b[:, x], golayC.t_b)
+# golayC.plot1d(golayC.results[:, x], golayC.t_b)
 
 # sum of correlated main & complementary signals
 golay_sum = signal("signal_data/golay/golay_a_l3_2.dat",
                    "signal_data/golay/bscangolay2mhz_l3nc.dat")
 golay_sum.results = golay.results + golayC.results
+# golay_sum.wien(window=(100,10))
 
-golay_sum.plot2d(golay_sum.results, MIN=0.0, MAX=0.2)
 golay_sum.plot1d(golay_sum.results[:, x], golay_sum.t_b)
+golay_sum.plot2d(golay_sum.results, MIN=0.0, MAX=0.2)

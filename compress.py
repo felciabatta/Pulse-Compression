@@ -136,10 +136,10 @@ class signal:
                            mode='same')/(0.1*len(self.data_a))
         self.results = out
 
-    def wien(self, signal=None):
+    def wien(self, signal=None, window=None, power=None):
         if signal is None:
             signal = self.results
-        self.results = sg.wiener(signal)
+        self.results = sg.wiener(signal, window, power)
 
     def remove_excitation(self, s1, s2, delay=2, trim=0):
         if delay == None:
