@@ -86,8 +86,9 @@ bark1 = signal("signal_data/barker_1MHz_13/signalbarker13.dat",
                "signal_data/barker_1MHz_13/bscanbarker13.dat")
 
 bark1.match2d(remove_pulse=1, trim=-300)
-bark1.results[:700,:]=0
-bark1.wien(window=(100,10))
+bark1.results[:700,:]=np.mean(abs(bark1.results[701:,:]))
+bark1.results[:700,:]=np.nan
+# bark1.wien(window=(100,10))
 
 bark1.plot1d()
 bark1.plot2d(MIN=0, MAX=0.2)
@@ -148,5 +149,6 @@ golay_sum.results = golay.results + golayC.results
 # golay_sum.wien(window=(100,10))
 
 # golay_sum.results[-200:, :] = np.nan
+x = 79
 golay_sum.plot1d(golay_sum.results[:, x], golay_sum.t_b)
 golay_sum.plot2d(golay_sum.results, MIN=0.0, MAX=0.2)
