@@ -72,7 +72,7 @@ chirpL = signal("signal_data/chirp_0822MHz_6u/longchirp.dat",
                 "signal_data/chirp_0822MHz_6u/bscan.dat")
 
 chirpL.match2d(remove_pulse=1, trim=-45)
-chirpL.wien(window=(100,10))
+# chirpL.wien(window=(100,10))
 
 chirpL.plot1d()
 chirpL.plot2d(MIN=0, MAX=0.08)
@@ -122,7 +122,7 @@ golay.match2d(remove_pulse=1, trim=gtrim)
 # golay.wien()
 
 # golay.plot1d()
-# golay.plot2d(MIN=0, MAX=0.1)
+golay.plot2d(MIN=0, MAX=0.1)
 # golay.plot2d(golay.results, MIN=0, MAX=0.2)
 # golay.plot1d(golay.data_b[:, x], golay.t_b)
 # golay.plot1d(golay.results[:, x], golay.t_b)
@@ -144,7 +144,9 @@ golayC.match2d(remove_pulse=1, trim=gtrim)
 golay_sum = signal("signal_data/golay/golay_a_l3_2.dat",
                    "signal_data/golay/bscangolay2mhz_l3nc.dat")
 golay_sum.results = golay.results + golayC.results
+# golay_sum.results[-200:, :] = 0
 # golay_sum.wien(window=(100,10))
 
+# golay_sum.results[-200:, :] = np.nan
 golay_sum.plot1d(golay_sum.results[:, x], golay_sum.t_b)
 golay_sum.plot2d(golay_sum.results, MIN=0.0, MAX=0.2)
