@@ -1,11 +1,13 @@
 %Z score tells us how many std abover or below the mean a particular data
 %point i
 
+
+
 % Data
-y = x;
+y = x(200:2000);
 
 % Settings
-lag = 100;
+lag = 200;
 threshold = 3;
 
 % Get results`                                                          
@@ -24,6 +26,7 @@ function [signals] = Signal2NoiseRatio(y,lag,threshold)
 signals = zeros(length(y),1);
 % Initialise filtered series
 filteredY = y(1:lag+1);
+influence=0.7;
 % Initialise filters
 avgFilter(lag+1,1) = mean(y(1:lag+1));
 stdFilter(lag+1,1) = std(y(1:lag+1));
@@ -66,7 +69,7 @@ for i=lag+2:length(y)
             
         end
         % Make influence lower
-        filteredY(i) = filteredY(i-1);
+        filteredY(i) = influence*y(i)+(1-influence)*filteredY(i-1);
         Peaks = [Peaks, y(i)];
         
         
