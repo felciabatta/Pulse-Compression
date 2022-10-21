@@ -2,15 +2,17 @@
 
 % Data
 x = readmatrix("signal_data/golay/match_result.csv");
-x(x==0) = nan;
-y = x(:,80);
+y = x(:,10);
+% y(y==0)=nan; % using nan often makes it worse - need to sort this issue
 
 % Settings
-lag = 200; % window size
+lag = 300; % window size
 threshold = 3; % no. of stds
+influence = 0.7; % influence factor for new point in moving window
+UseMaxPeak = true; % use max peak rather than mean peaks
 
 % Get results
-[signals] = Signal2NoiseRatio(y,lag,threshold);
+[signals] = Signal2NoiseRatio(y,lag,threshold, influence, UseMaxPeak);
 
 % Plotting stuff
 figure; subplot(2,1,1); hold on;
@@ -18,7 +20,7 @@ plot(y,'b');
 subplot(2,1,2);
 stairs(signals,'r','LineWidth',1.5); ylim([-1.5 1.5]);
 
-function [signals] = Signal2NoiseRatio(y,lag,threshold)
+function [signals] = Signal2NoiseRatio(y, lag, threshold, influence, UseMaxPeak)
 
 % Initialise signal results
 signals = zeros(length(y),1);
@@ -33,7 +35,6 @@ stdFilter(lag+1,1) = std(abs(y(1:lag+1))); %  stds of previous window
 % Loop over all datapoints y(lag+2),...,y(t)
 Peaks = []; % vector of all points above threshold
 PeakVec = {}; % cell array containing 
-PeakMax = [];
 Noise = []; % vector of all points above threshold
 changeCon = [0,0]; % determines when classification changes
 counter = 1;
@@ -67,11 +68,9 @@ for i=lag+2:length(y)
 %             Peaks = [Peaks, y(i)]; % add to set of peak points
         % MAYBE have TROUGH points too?
         end
-        % Make influence lower (i.e. don't add PEAK to next moving window)
-        % This is problematic as it can enable noise to be classified wrong
-%         filteredY(i) = filteredY(i-1); % end filter value remains same
-%         filteredY(i) = avgFilter(i-1);
-        filteredY(i) = y(i);
+
+        % Make influence lower
+        filteredY(i) = influence*y(i)+(1-influence)*filteredY(i-1);
         Peaks = [Peaks, y(i)]; % add to set of peak points AGAIN???
 
     else
@@ -91,15 +90,25 @@ for i=lag+2:length(y)
 end
 
 PeakABS = [];
-for p=PeakVec
-    Ptemp = max(abs([p{:}]));
-    PeakABS = [PeakABS,Ptemp];
+for p = PeakVec
+    if any(p{:}>0) % only use positive peaks
+        Ptemp = max([p{:}]);
+        PeakABS = [PeakABS,Ptemp];
+    end
 end
-PeakABS = abs([PeakVec{:}]);
-
-MeanPeak = mean(PeakABS);
 PeakABS
-MeanSideLobes = sum((abs(Noise))/length(Noise));
-SNR = MeanPeak/MeanSideLobes
 
+if isequal(PeakABS,[])
+    MeanPeak = 0
+else
+    MeanPeak = mean(PeakABS)
+end
+
+if UseMaxPeak == true
+    MeanPeak = max(PeakABS)
+end
+
+MeanSideLobes = mean(abs(Noise), 'omitnan');
+% MeanSideLobes = sqrt(mean(Noise.^2));
+SNR = MeanPeak/MeanSideLobes
 end
