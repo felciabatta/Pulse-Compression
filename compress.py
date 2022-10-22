@@ -13,6 +13,9 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from signal_data import athena
 
+from LaTeXplots import LaPlot
+from LaTeXplots import mycols
+
 import tkinter as tk
 from tkinter import filedialog
 root = tk.Tk()
@@ -147,22 +150,29 @@ class signal:
         s1[delay:delay+len(s2)+trim, :] = 0
         pass
 
-    def plot1d(self, data=None, t=None, i0=None, iend=None):
+    def plot1d(self, data=None, t=None, i0=None, iend=None, title=r'Signal',
+               xlabel=r'Time, $t\,$seconds', ylabel=r'Amplitude, $A$'):
         if data is None:
-            data = self.data_a
-            t = self.t_a
-        fig = plt.figure()
-        plt.plot(t[i0:iend], data[i0:iend])
-        return fig
+            data = self.data_a[i0:iend]
+            t = self.t_a[i0:iend]
 
-    def plot2d(self, data=None, t=None, x=None,  MIN=None, MAX=None):
+        plot = LaPlot(plt.plot, [t, data],
+                      {'color':mycols['sweetpink'], 'linewidth':1},
+                      xlim=(t[0], t[-1]), title=title,
+                      xlabel=xlabel, ylabel=ylabel, showgrid=1)
+        return plot
+
+    def plot2d(self, data=None, t=None, x=None,  MIN=None, MAX=None,
+               title=r'Signal', xlabel=r'Position, $x$',
+               ylabel=r'Time, $t\,$seconds'):
         if data is None:
             data = self.data_b
             t = self.t_b
             x = self.x
-        fig = plt.figure()
-        plt.pcolormesh(data, vmin=MIN, vmax=MAX)
-        return fig
+        plot = LaPlot(plt.pcolormesh, [data], {"vmin": MIN, "vmax": MAX},
+                      title=title, xlabel=xlabel, ylabel=ylabel, showgrid=0,
+                      figsize=(4,6))
+        return plot
 
     def save_results(self, data=None, filename=None):
         if data is None:
