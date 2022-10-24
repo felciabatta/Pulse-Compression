@@ -184,4 +184,4 @@ class signal:
     def load_results(self, filepath=None):
         if filepath is None:
             filepath = filedialog.askopenfilename()
-        results = np.genfromtxt(filepath)
+        self.results = np.genfromtxt(filepath, delimiter=",")

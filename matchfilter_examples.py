@@ -51,7 +51,7 @@ pulse2 = signal("signal_data/pulse_2MHznoise/pulse2mhz.dat",
 title = r'U.S. Pulse, $2\,$MHz'
 
 pulse2.match2d(remove_pulse=1, trim=80)
-pulse2.wien(window=(100, 10))
+# pulse2.wien(window=(100, 10))
 
 plot = pulse2.plot1d(title=title)
 
@@ -69,10 +69,10 @@ chirpS = signal("signal_data/chirp_0822MHz_2u/chirpsignal.dat",
 title = r'Chirp Pulse, $0.8\,$-$\,2.2\,$MHz, $2\,\mu$s'
 
 chirpS.match2d(remove_pulse=1, trim=100)
-chirpS.wien(window=(100, 10))
+# chirpS.wien(window=(100, 10))
 
 plot = chirpS.plot1d(title=title)
-
+x=0
 plotbf = chirpS.plot1d(chirpS.data_b[:, x], chirpS.t_b, title=title)
 plotaf = chirpS.plot1d(chirpS.results[:, x], chirpS.t_b, title=title)
 
