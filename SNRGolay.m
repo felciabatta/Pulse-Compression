@@ -1,7 +1,30 @@
 % Z score tells us how many std above or below the mean a particular data point i
 
+%File paths:
+
+
+%Barker
+%"signal_data/barker_1MHz_13/match_result.csv"
+%"signal_data/barker_2MHz_13/match_result.csv"
+
+%Chirp
+%"signal_data/chirp_0822MHz_2u/match_result.csv"
+%"signal_data/chirp_0822MHz_6u/match_result.csv"
+
+%Golay
+%"signal_data/golay/match_result.csv"
+
+%Basic input signal with noise
+%"signal_data/pulse_1MHznoise/match_result.csv"
+%"signal_data/pulse_2MHznoise/match_result.csv"
+
+%Basic input signal no noise
+%"signal_data/pulse_2MHznonoise/match_result.csv"
+
+
+
 % Data
-x = readmatrix("signal_data/golay/match_result.csv");
+x = readmatrix("signal_data/pulse_2MHznonoise/match_result.csv");
 y = x(:,10);
 % y(y==0)=nan; % using nan often makes it worse - need to sort this issue
 
@@ -105,10 +128,10 @@ else
 end
 
 if UseMaxPeak == true
-    MeanPeak = max(PeakABS)
+    MAXPeak = max(PeakABS)
 end
 
-MeanSideLobes = mean(abs(Noise), 'omitnan');
+MeanSideLobes = mean(abs(Noise), 'omitnan')
 % MeanSideLobes = sqrt(mean(Noise.^2));
-SNR = MeanPeak/MeanSideLobes
+SNR = MAXPeak/MeanSideLobes
 end
