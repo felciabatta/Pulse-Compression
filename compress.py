@@ -157,7 +157,6 @@ class signal:
         self.results = sg.wiener(s1, window, power)
 
     def remove_excitation(self, s1, s2, delay=2, trim=0):
-        print('trim is'+str(trim))
         if delay == None:
             delay = np.argmax(s1[:, 1]) - np.argmax(s2)
         s1[delay:delay+len(s2)+trim, :] = 0

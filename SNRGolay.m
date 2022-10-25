@@ -2,7 +2,6 @@
 
 %File paths:
 
-
 %Barker
 %"signal_data/barker_1MHz_13/match_result.csv"
 %"signal_data/barker_2MHz_13/match_result.csv"
@@ -21,11 +20,9 @@
 %Basic input signal no noise
 %"signal_data/pulse_2MHznonoise/match_result.csv"
 
-
-
 % Data
-x = readmatrix("signal_data/pulse_2MHznonoise/match_result.csv");
-y = x(:,10);
+x = readmatrix("signal_data/golay/match_result.csv");
+y = x(:, 10);
 % y(y==0)=nan; % using nan often makes it worse - need to sort this issue
 
 % Settings
@@ -35,7 +32,7 @@ influence = 0.7; % influence factor for new point in moving window
 UseMaxPeak = true; % use max peak rather than mean peaks
 
 % Get results
-[signals] = Signal2NoiseRatio(y,lag,threshold, influence, UseMaxPeak);
+[signals] = Signal2NoiseRatio(y, lag, threshold, influence, UseMaxPeak);
 
 % Plotting stuff
 figure; subplot(2,1,1); hold on;
@@ -49,63 +46,68 @@ function [signals] = Signal2NoiseRatio(y, lag, threshold, influence, UseMaxPeak)
 signals = zeros(length(y),1);
 
 % Initialise filtered series (the moving window)
-filteredY = y(1:lag+1);
+filteredY = y(1:lag);
 
 % Initialise filters ()
-avgFilter(lag+1,1) = mean(abs(y(1:lag+1))); % means of previous window
-stdFilter(lag+1,1) = std(abs(y(1:lag+1))); %  stds of previous window
+avgFilter(lag,1) = mean(y(1:lag)); % means of previous window
+stdFilter(lag,1) = std(y(1:lag)); %  stds of previous window
 
 % Loop over all datapoints y(lag+2),...,y(t)
 Peaks = []; % vector of all points above threshold
-PeakVec = {}; % cell array containing 
+PeakVec = {}; % cell array containing all 'groupings of peaks'
 Noise = []; % vector of all points above threshold
 changeCon = [0,0]; % determines when classification changes
-counter = 1;
-temp = []; % vector containing a current selction of
+changeCount = 1;
+tempPeaks = []; % vector containing a current selection of peaks
 
-for i=lag+2:length(y)
+% RMS, STD and Mean over entire signal
+y_nozero = y(y~=0);
+signalRMS = sqrt(mean(y_nozero.^2));
+signalSTD = std(y_nozero);
+signalMean = mean(y_nozero);
+
+for i=lag+1:length(y)
     % if classification changes: tally +1, add temp to cell array
     if changeCon(1,1) ~= changeCon(1,2)
-        counter = counter+1;
-        PeakVec = [PeakVec,temp];
-        temp = [];
+        changeCount = changeCount+1;
+        PeakVec = [PeakVec,tempPeaks];
+        tempPeaks = [];
     end
     
-    % if currently on peak ( (tally)mod2 == 1 ): add point to temp
-    if (mod(counter, 2) == 0 | counter ==1)
-    else
-        temp = [temp,y(i)];
+    % if currently on peak ( (tally)mod2 == 0 ): add point to temp
+    if (mod(changeCount, 2) == 0)
+        tempPeaks = [tempPeaks, y(i)];
     end
 
     % if new value is above threshold
     % (new val)-(mean of previous window) > (std of prev window)
-    if abs(y(i))-avgFilter(i-1) > threshold*stdFilter(i-1)
+    if (abs(y(i))-avgFilter(i-1) > threshold*stdFilter(i-1))...
+        & (abs(y(i))-signalMean > threshold*signalSTD)
         
         peakAsign = 1; % classify point as a PEAK
 
         if y(i) > 0 % Positive signal
             signals(i) = 1; % add to list of classified points
-%             Peaks = [Peaks, y(i)]; % add to set of peak points
         else % Negative signal
             signals(i) = -1; % add to list of classified points
-%             Peaks = [Peaks, y(i)]; % add to set of peak points
-        % MAYBE have TROUGH points too?
         end
 
         % Make influence lower
         filteredY(i) = influence*y(i)+(1-influence)*filteredY(i-1);
-        Peaks = [Peaks, y(i)]; % add to set of peak points AGAIN???
+        Peaks = [Peaks, y(i)];
 
     else
         % No signal
         signals(i) = 0; % add to list of classified points
         filteredY(i) = y(i);
-        Noise = [Noise,y(i)]; % add to set of noise points
-        peakAsign = 2; % classify point as NOISE
+        if y(i) ~= 0 % to account for 0 values created in data processing
+            Noise = [Noise, y(i)]; % add to set of noise points
+        end
+        peakAsign = 0; % classify point as NOISE
     end
 
     % Adjust the filters
-    changeCon(1,1) = changeCon(1,2); % update 
+    changeCon(1,1) = changeCon(1,2); % update change condition
     changeCon(1,2) = peakAsign;
 
     avgFilter(i) = mean(filteredY(i-lag:i));
@@ -131,7 +133,7 @@ if UseMaxPeak == true
     MAXPeak = max(PeakABS)
 end
 
-MeanSideLobes = mean(abs(Noise), 'omitnan')
-% MeanSideLobes = sqrt(mean(Noise.^2));
-SNR = MAXPeak/MeanSideLobes
+PeakABS
+noiseRMS = sqrt(mean(Noise.^2, 'omitnan'))
+SNR = MAXPeak/noiseRMS
 end
