@@ -1,6 +1,6 @@
 % Z score tells us how many std above or below the mean a particular data point i
 
-%File paths:
+%File paths match:
 
 %Barker
 %"signal_data/barker_1MHz_13/match_result.csv"
@@ -20,10 +20,31 @@
 %Basic input signal no noise
 %"signal_data/pulse_2MHznonoise/match_result.csv"
 
+% File path match-wien
+
+%Barker
+%"signal_data/barker_1MHz_13/match-wien_result.csv"
+%"signal_data/barker_2MHz_13/match-wien_result.csv"
+
+%Chirp
+%"signal_data/chirp_0822MHz_2u/match-wien_result.csv"
+%"signal_data/chirp_0822MHz_6u/match-wien_result.csv"
+
+%Golay
+%"signal_data/golay/match-wien_result.csv"
+
+%Basic input signal with noise
+%"signal_data/pulse_1MHznoise/match-wien_result.csv"
+%"signal_data/pulse_2MHznoise/match-wien_result.csv"
+
+%Basic input signal no noise
+%"signal_data/pulse_2MHznonoise/match-wien_result.csv"
+
 % Data
-x = readmatrix("signal_data/golay/match_result.csv");
-y = x(:, 10);
+x = readmatrix("signal_data/barker_1MHz_13/match-wien_result.csv");
+%y = x(:, 10);
 % y(y==0)=nan; % using nan often makes it worse - need to sort this issue
+defects = [11,26,41,56,72];
 
 % Settings
 lag = 300; % window size
@@ -31,8 +52,20 @@ threshold = 3; % no. of stds
 influence = 0.7; % influence factor for new point in moving window
 UseMaxPeak = true; % use max peak rather than mean peaks
 
-% Get results
-[signals] = Signal2NoiseRatio(y, lag, threshold, influence, UseMaxPeak);
+SNRlist = [];
+for c=1:length(defects)
+    y = x(:,defects(c));
+    
+   
+    [signals,SNR] = Signal2NoiseRatio(y,lag,threshold, influence, UseMaxPeak);
+    disp(SNR)
+    if isempty(SNR)
+        SNRlist = [SNRlist,0]
+    else
+        SNRlist = [SNRlist,SNR]
+    end
+end
+meanSNR = mean(SNRlist)
 
 % Plotting stuff
 figure; subplot(2,1,1); hold on;
@@ -40,7 +73,7 @@ plot(y,'b');
 subplot(2,1,2);
 stairs(signals,'r','LineWidth',1.5); ylim([-1.5 1.5]);
 
-function [signals] = Signal2NoiseRatio(y, lag, threshold, influence, UseMaxPeak)
+function [signals,SNR] = Signal2NoiseRatio(y, lag, threshold, influence, UseMaxPeak)
 
 % Initialise signal results
 signals = zeros(length(y),1);
@@ -121,19 +154,19 @@ for p = PeakVec
         PeakABS = [PeakABS,Ptemp];
     end
 end
-PeakABS
+PeakABS;
 
 if isequal(PeakABS,[])
-    MeanPeak = 0
+    MeanPeak = 0;
 else
-    MeanPeak = mean(PeakABS)
+    MeanPeak = mean(PeakABS);
 end
 
 if UseMaxPeak == true
-    MAXPeak = max(PeakABS)
+    MAXPeak = max(PeakABS);
 end
 
-PeakABS
-noiseRMS = sqrt(mean(Noise.^2, 'omitnan'))
-SNR = MAXPeak/noiseRMS
+PeakABS;
+noiseRMS = sqrt(mean(Noise.^2, 'omitnan'));
+SNR = MAXPeak/noiseRMS;
 end
