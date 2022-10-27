@@ -41,7 +41,7 @@
 %"signal_data/pulse_2MHznonoise/match-wien_result.csv"
 
 % Data
-x = readmatrix("signal_data/barker_1MHz_13/match-wien_result.csv");
+x = readmatrix("signal_data/golay/match-wien_result.csv");
 %y = x(:, 10);
 % y(y==0)=nan; % using nan often makes it worse - need to sort this issue
 defects = [11,26,41,56,72];
@@ -108,7 +108,7 @@ for i=lag+1:length(y)
     end
     
     % if currently on peak ( (tally)mod2 == 0 ): add point to temp
-    if (mod(changeCount, 2) == 0)
+    if (mod(changeCount, 2) == 0) & i<1700
         tempPeaks = [tempPeaks, y(i)];
     end
 
@@ -127,7 +127,9 @@ for i=lag+1:length(y)
 
         % Make influence lower
         filteredY(i) = influence*y(i)+(1-influence)*filteredY(i-1);
-        Peaks = [Peaks, y(i)];
+        if i<1700
+            Peaks = [Peaks, y(i)]; % REDUNDANT CODE
+        end
 
     else
         % No signal
