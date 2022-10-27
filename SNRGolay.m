@@ -2,48 +2,19 @@
 
 %File paths match:
 
-%Barker
-%"signal_data/barker_1MHz_13/match_result.csv"
-%"signal_data/barker_2MHz_13/match_result.csv"
+files = ["match_result.csv", "wien_result.csv", "match-wien_result.csv", "wien-match_result.csv"];
 
-%Chirp
-%"signal_data/chirp_0822MHz_2u/match_result.csv"
-%"signal_data/chirp_0822MHz_6u/match_result.csv"
-
-%Golay
-%"signal_data/golay/match_result.csv"
-
-%Basic input signal with noise
-%"signal_data/pulse_1MHznoise/match_result.csv"
-%"signal_data/pulse_2MHznoise/match_result.csv"
-
-%Basic input signal no noise
-%"signal_data/pulse_2MHznonoise/match_result.csv"
-
-% File path match-wien
-
-%Barker
-%"signal_data/barker_1MHz_13/match-wien_result.csv"
-%"signal_data/barker_2MHz_13/match-wien_result.csv"
-
-%Chirp
-%"signal_data/chirp_0822MHz_2u/match-wien_result.csv"
-%"signal_data/chirp_0822MHz_6u/match-wien_result.csv"
-
-%Golay
-%"signal_data/golay/match-wien_result.csv"
-
-%Basic input signal with noise
-%"signal_data/pulse_1MHznoise/match-wien_result.csv"
-%"signal_data/pulse_2MHznoise/match-wien_result.csv"
+dirs = ["signal_data/barker_1MHz_13/",...
+        "signal_data/barker_2MHz_13/",...
+        "signal_data/chirp_0822MHz_2u/",...
+        "signal_data/chirp_0822MHz_6u/",...
+        "signal_data/golay/",...
+        "signal_data/pulse_1MHznoise/",...
+        "signal_data/pulse_2MHznoise/"];
 
 %Basic input signal no noise
 %"signal_data/pulse_2MHznonoise/match-wien_result.csv"
 
-% Data
-x = readmatrix("signal_data/golay/match-wien_result.csv");
-%y = x(:, 10);
-% y(y==0)=nan; % using nan often makes it worse - need to sort this issue
 defects = [11,26,41,56,72];
 
 % Settings
@@ -52,28 +23,41 @@ threshold = 3; % no. of stds
 influence = 0.7; % influence factor for new point in moving window
 UseMaxPeak = true; % use max peak rather than mean peaks
 
-SNRlist = [];
-for c=1:length(defects)
-    y = x(:,defects(c));
-    
-   
-    [signals,SNR] = Signal2NoiseRatio(y,lag,threshold, influence, UseMaxPeak);
-    disp(SNR)
-    if isempty(SNR)
-        SNRlist = [SNRlist,0]
-    else
-        SNRlist = [SNRlist,SNR]
+results = [];
+for d = dirs
+    for f = files
+        % Data
+        x = readmatrix(d+f);
+        %y = x(:, 10);
+        % y(y==0)=nan; % using nan often makes it worse - need to sort this issue
+
+        SNRlist = [];
+        for c=1:length(defects)
+            y = x(:,defects(c));
+
+            [signals,SNR] = Signal2NoiseRatio(y,lag,threshold, influence, UseMaxPeak);
+            if isempty(SNR)
+                SNRlist = [SNRlist, 0];
+            else
+                SNRlist = [SNRlist, SNR];
+            end
+        end
+        meanSNR = mean(SNRlist);
+        
+        results = [results, SNRlist, meanSNR];
+        
+        % Plotting stuff
+        if 0
+            figure; subplot(2,1,1); hold on;
+            plot(y,'b');
+            subplot(2,1,2);
+            stairs(signals,'r','LineWidth',1.5); ylim([-1.5 1.5]);
+        end
     end
 end
-meanSNR = mean(SNRlist)
-
-% Plotting stuff
-figure; subplot(2,1,1); hold on;
-plot(y,'b');
-subplot(2,1,2);
-stairs(signals,'r','LineWidth',1.5); ylim([-1.5 1.5]);
-
-function [signals,SNR] = Signal2NoiseRatio(y, lag, threshold, influence, UseMaxPeak)
+results = reshape(results, [length(files)*6, length(dirs)])'
+        
+function [signals, SNR] = Signal2NoiseRatio(y, lag, threshold, influence, UseMaxPeak)
 
 % Initialise signal results
 signals = zeros(length(y),1);
