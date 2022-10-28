@@ -9,6 +9,7 @@ from compress import signal
 import numpy as np
 
 x = 10  # slice to plot in 1D
+fm = 21
 
 # %% CLEAN U.S. PULSE, 2MHz
 
@@ -16,7 +17,7 @@ pulse = signal("signal_data/pulse_2MHznonoise/pulse2mhz.dat",
                "signal_data/pulse_2MHznonoise/bscan.dat")
 title = r'Clean U.S. Pulse, $2\,$MHz'
 
-plots = pulse.filter_example(filter_method=1, title=title, x=x, MAX=0.06)
+plots = pulse.filter_example(filter_method=fm, title=title, x=x, MAX=0.06)
 
 # %% U.S. PULSE, 1MHz
 
@@ -24,7 +25,7 @@ pulse1 = signal("signal_data/pulse_1MHznoise/pulse1mhz.dat",
                 "signal_data/pulse_1MHznoise/bscanpulse1.dat")
 title = r'U.S. Pulse, $1\,$MHz'
 
-plots = pulse1.filter_example(filter_method=1, title=title, x=x)
+plots = pulse1.filter_example(filter_method=fm, title=title, x=x)
 maxCoords_p1, SNRs_p1, SNR_p1 = pulse1.SNR_example([550, 10], plots, plotMyGuess=1,
                                           window=np.array([40, 3]))
 
@@ -34,7 +35,7 @@ pulse2 = signal("signal_data/pulse_2MHznoise/pulse2mhz.dat",
                 "signal_data/pulse_2MHznoise/bscanpulse2.dat")
 title = r'U.S. Pulse, $2\,$MHz'
 
-plots = pulse2.filter_example(filter_method=1, title=title, trim=80, x=x)
+plots = pulse2.filter_example(filter_method=fm, title=title, trim=80, x=x)
 maxCoords_p2, SNRs_p2, SNR_p2 = pulse2.SNR_example([450, 10], plots, plotMyGuess=1,
                                           window=np.array([30, 2]), trim=80)
 
@@ -44,8 +45,13 @@ chirpS = signal("signal_data/chirp_0822MHz_2u/chirpsignal.dat",
                 "signal_data/chirp_0822MHz_2u/bscanchirp0822.dat")
 title = r'Chirp Pulse, $0.8\,$-$\,2.2\,$MHz, $2\,\mu$s'
 
-plots = chirpS.filter_example(filter_method=1, title=title, trim=100, x=x)
-maxCoords_cS, SNRs_cS, SNR_cS = chirpS.SNR_example([350, 10], plots, plotMyGuess=1,
+if fm == 2:
+    tguess = 350
+else:
+    tguess = 450
+
+plots = chirpS.filter_example(filter_method=fm, title=title, trim=100, x=x)
+maxCoords_cS, SNRs_cS, SNR_cS = chirpS.SNR_example([tguess, 10], plots, plotMyGuess=1,
                                           window=np.array([40, 3]), trim=100)
 # GUESS: use 350 for wien (2), 450 for everything else
 
@@ -55,7 +61,7 @@ chirpL = signal("signal_data/chirp_0822MHz_6u/longchirp.dat",
                 "signal_data/chirp_0822MHz_6u/bscan.dat")
 title = r'Chirp Pulse, $0.8\,$-$\,2.2\,$MHz, $6\,\mu$s'
 
-plots = chirpL.filter_example(filter_method=1, title=title, trim=-45, x=x)
+plots = chirpL.filter_example(filter_method=fm, title=title, trim=-45, x=x)
 maxCoords_cL, SNRs_cL, SNR_cL = chirpL.SNR_example([550, 10], plots, plotMyGuess=1,
                                           window=np.array([40, 3]), trim=-45)
 
@@ -65,10 +71,17 @@ bark1 = signal("signal_data/barker_1MHz_13/signalbarker13.dat",
                "signal_data/barker_1MHz_13/bscanbarker13.dat")
 title = r'Barker Code (length $13$), $1\,$MHz'
 
-plots = bark1.filter_example(filter_method=1, title=title, trim=-300, x=x,
+if fm == 2:
+    tguess = 1000
+    SNRtrim = 0
+else:
+    tguess = 800
+    SNRtrim = -300
+
+plots = bark1.filter_example(filter_method=fm, title=title, trim=-300, x=x,
                              remove_matchedpulse=700)
-maxCoords_b1, SNRs_b1, SNR_b1 = bark1.SNR_example([800, 10], plots, plotMyGuess=1,
-                                        window=np.array([40, 3]), trim=-300)
+maxCoords_b1, SNRs_b1, SNR_b1 = bark1.SNR_example([tguess, 10], plots, plotMyGuess=1,
+                                        window=np.array([40, 3]), trim=SNRtrim)
 # GUESS: use 1000 for wien (2), 800 for everything else
 
 
@@ -78,7 +91,7 @@ bark2 = signal("signal_data/barker_2MHz_13/barker13.dat",
                "signal_data/barker_2MHz_13/bscanbarker13.dat")
 title = r'Barker Code (length $13$), $1\,$MHz'
 
-plots = bark2.filter_example(filter_method=1, title=title, x=40)
+plots = bark2.filter_example(filter_method=fm, title=title, x=40)
 maxCoords_b2, SNRs_b2, SNR_b2 = bark2.SNR_example([575, 10], plots, plotMyGuess=1,
                                          window=np.array([40, 3]))
 
@@ -116,8 +129,12 @@ if 0:
 # %% Golay 3, 2MHz
 
 gtrim = 100
-gfilt1 = 1
-gfilt2 = 2
+if fm == 12:
+    gfilt1 = 1
+    gfilt2 = 2
+else:
+    gfilt1 = fm
+    gfilt2 = 0
 
 # MAIN SIGNAL
 
@@ -156,3 +173,25 @@ maxCoords_gS, SNRs_gS, SNR_gS = golay_sum.SNR_example([500, 10], plotsS, plotMyG
                                           window=np.array([40, 3]), trim=100)
 
 # %% COMPILE SNRs
+
+SNR = ((SNR_b1),
+       (SNR_b2),
+       (SNR_cS),
+       (SNR_cL),
+       (SNR_gS),
+       (SNR_p1),
+       (SNR_p2))
+SNRs = ((SNRs_b1),
+        (SNRs_b2),
+        (SNRs_cS),
+        (SNRs_cL),
+        (SNRs_gS),
+        (SNRs_p1),
+        (SNRs_p2))
+maxCoords = ((maxCoords_b1),
+             (maxCoords_b2),
+             (maxCoords_cS),
+             (maxCoords_cL),
+             (maxCoords_gS),
+             (maxCoords_p1),
+             (maxCoords_p2))
