@@ -156,6 +156,30 @@ class signal:
 
         self.results = sg.wiener(s1, window, power)
 
+    def prod_filter(self, s1, s2, remove_pulse=False,
+                    delay=2, trim=0, window=1, signal_cutoff=1700):
+        if s1 is None:
+            s1 = np.copy(self.data_b)
+        if s2 is None:
+            s2 = np.copy(self.data_a)
+
+        if remove_pulse:
+            self.remove_excitation(s1, s2, delay=delay, trim=trim)
+
+        window = 1
+        T = s1.shape[0]
+        N = s1.shape[1] - 2*window
+        R = 2*window
+        prodarray = np.zeros((T, N))
+        for n in range(N):
+            x0 = n
+            xend = n+2*window+1
+            prodarray[:, n] = np.prod(s1[:, x0:xend], 1)
+            prodarray[:, n] /= max(prodarray[:signal_cutoff, n])
+            # prodarray[:, n] = np.log(abs(prodarray[:, n]))*np.sign(prodarray[:, n])
+
+        self.results = prodarray
+
     def remove_excitation(self, s1, s2, delay=2, trim=0):
         if delay == None:
             delay = np.argmax(s1[:, 1]) - np.argmax(s2)
@@ -182,6 +206,51 @@ class signal:
 
         return np.max(s1)
 
+    def find_defects(self, coordGuess=None, data=None,
+                     window=np.array([50, 5])):
+        if data is None:
+            data = self.results
+
+        if coordGuess is None:
+            # coords of defect in US pulse no noise
+            coordGuess = np.array(
+                [[426, 10], [536, 25], [647, 40], [757, 55], [868, 70]])
+        elif coordGuess.size == 2:
+            coordGuess = coordGuess + np.array(
+                [[0, 0], [110, 15], [221, 30], [331, 45], [442, 60]])
+
+        coordError = np.zeros(coordGuess.shape)
+        peakAmplitudes = np.zeros(coordGuess.shape[0])
+        for i, c in enumerate(coordGuess):
+            tx0 = c-window
+            txend = c+window+1
+
+            maxIndex = np.argmax(data[tx0[0]:txend[0], tx0[1]:txend[1]])
+            coordError[i] = (np.unravel_index(
+                maxIndex, window*2+1) - window).astype(int)
+
+            peakAmplitudes[i] = np.amax(data[tx0[0]:txend[0], tx0[1]:txend[1]])
+
+        maxCoords = (coordError + coordGuess).astype(int)
+        relMaxCoords = (maxCoords - maxCoords[0]).astype(int)
+        return maxCoords, relMaxCoords, coordError, peakAmplitudes
+
+    def trueSNR(self, peakAmplitudes=[], s1=None, s2=None,
+                removed_pulse=0, delay=2, trim=0, signal_cutoff=1700):
+        if s1 is None:
+            s1 = self.results
+        if s2 is None:
+            s2 = self.data_a
+
+        if removed_pulse:
+            tend = delay+len(s2)+trim
+
+        totalRMS = np.sqrt(np.mean(s1[tend:signal_cutoff, :]**2))
+        SNRs = peakAmplitudes/totalRMS
+        SNR = np.mean(SNRs)
+
+        return SNRs, SNR
+
     def filter_example(self, filter_method=1, signal=None,
                        remove_pulse=1, trim=0, remove_matchedpulse=0,
                        window=(100, 10),
@@ -199,7 +268,8 @@ class signal:
                          remove_matchedpulse=remove_matchedpulse)
 
         elif filter_method == 2:
-            self.wien(signal, remove_pulse=remove_pulse, trim=trim, window=(100, 10))
+            self.wien(signal, remove_pulse=remove_pulse,
+                      trim=trim, window=(100, 10))
 
         elif filter_method == 12:
             self.match2d(signal, remove_pulse=remove_pulse, trim=trim,
@@ -236,15 +306,44 @@ class signal:
 
         return plots
 
+    def SNR_example(self, coordGuess, plots, signal=None, plotMyGuess=0,
+                    window=np.array([50, 5]), removed_pulse=1, delay=2, trim=0):
+        if signal is None:
+            signal = self.results
+
+        if coordGuess is None:
+            # coords of defect in US pulse no noise
+            coordGuess = np.array(
+                [[426, 10], [536, 25], [647, 40], [757, 55], [868, 70]])
+        elif np.array(coordGuess).size == 2:
+            coordGuess = coordGuess + np.array(
+                [[0, 0], [110, 15], [221, 30], [331, 45], [442, 60]])
+
+        if plotMyGuess:
+            plots[-1].ax.scatter(coordGuess[:, 1], coordGuess[:, 0],
+                                 s=10, c=mycols['calmblue'], marker='x', zorder=10)
+
+        maxCoords, _, _, peakAmplitudes = self.find_defects(coordGuess,
+                                                            window=window)
+        SNRs, SNR = self.trueSNR(peakAmplitudes, removed_pulse=removed_pulse,
+                                 delay=delay, trim=trim)
+        plots[-1].ax.scatter(maxCoords[:, 1], maxCoords[:, 0], s=10,
+                             c=mycols['sweetpink'], marker='x', zorder=10)
+
+        print("SNR is "+str(SNR.round(1))+" from", list(SNRs.round(1)))
+
+        return maxCoords, SNRs, SNR
+
     def plot1d(self, data=None, t=None, i0=None, iend=None, title=r'Signal',
-               xlabel=r'Time, $t\,$seconds', ylabel=r'Amplitude, $A$'):
+               xlabel=r'Time, $t\,$seconds', ylabel=r'Amplitude, $A$',
+               ylim=None):
         if data is None:
             data = self.data_a[i0:iend]
             t = self.t_a[i0:iend]
 
         plot = LaPlot(plt.plot, [t, data],
                       {'color': mycols['sweetpink'], 'linewidth': 1},
-                      xlim=(t[0], t[-1]), title=title,
+                      xlim=(t[0], t[-1]), ylim=ylim, title=title,
                       xlabel=xlabel, ylabel=ylabel, showgrid=1)
         return plot
 

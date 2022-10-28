@@ -2,7 +2,8 @@
 
 %File paths match:
 
-files = ["match_result.csv", "wien_result.csv", "match-wien_result.csv", "wien-match_result.csv"];
+files = ["match_result.csv", "wien_result.csv",...
+         "match-wien_result.csv", "wien-match_result.csv"];
 
 dirs = ["signal_data/barker_1MHz_13/",...
         "signal_data/barker_2MHz_13/",...
@@ -12,10 +13,10 @@ dirs = ["signal_data/barker_1MHz_13/",...
         "signal_data/pulse_1MHznoise/",...
         "signal_data/pulse_2MHznoise/"];
 
-%Basic input signal no noise
-%"signal_data/pulse_2MHznonoise/match-wien_result.csv"
+% Basic input signal no noise
+% "signal_data/pulse_2MHznonoise/match-wien_result.csv"
 
-defects = [11,26,41,56,72];
+defects = [11, 26, 41, 56, 72];
 
 % Settings
 lag = 300; % window size
@@ -23,41 +24,68 @@ threshold = 3; % no. of stds
 influence = 0.7; % influence factor for new point in moving window
 UseMaxPeak = true; % use max peak rather than mean peaks
 
+files = files;
+dirs = dirs;
+
+PLOTresults = false;
+SAMEfigure = false;
+
+SAVEresults = true;
+
 results = [];
 for d = dirs
     for f = files
         % Data
         x = readmatrix(d+f);
-        %y = x(:, 10);
         % y(y==0)=nan; % using nan often makes it worse - need to sort this issue
-
+        
+        if PLOTresults & SAMEfigure
+            figure;
+        end
+        
         SNRlist = [];
         for c=1:length(defects)
-            y = x(:,defects(c));
+            y = x;
 
-            [signals,SNR] = Signal2NoiseRatio(y,lag,threshold, influence, UseMaxPeak);
+            [signals,SNR] = Signal2NoiseRatio(y, defects(c), lag, threshold, influence, UseMaxPeak);
             if isempty(SNR)
                 SNRlist = [SNRlist, 0];
             else
                 SNRlist = [SNRlist, SNR];
             end
+            % Plotting stuff
+            if PLOTresults
+                if ~SAMEfigure
+                    figure;
+                end
+                subplot(2,1,1); hold on;
+                plot(y(:, defects(c)),'b');
+                subplot(2,1,2); hold on;
+                stairs(signals,'r','LineWidth',1.5); ylim([-1.5 1.5]);
+            end
         end
         meanSNR = mean(SNRlist);
-        
         results = [results, SNRlist, meanSNR];
-        
-        % Plotting stuff
-        if 0
-            figure; subplot(2,1,1); hold on;
-            plot(y,'b');
-            subplot(2,1,2);
-            stairs(signals,'r','LineWidth',1.5); ylim([-1.5 1.5]);
-        end
     end
 end
 results = reshape(results, [length(files)*6, length(dirs)])'
-        
-function [signals, SNR] = Signal2NoiseRatio(y, lag, threshold, influence, UseMaxPeak)
+
+if SAVEresults
+    writematrix(results, "SNR_Results.csv")
+end
+
+function [signals, SNR] = Signal2NoiseRatio(y, xpos, lag, threshold, influence, UseMaxPeak)
+
+% Processing of 2D data, extracting useful metrics
+signal_cutoff = 1700;
+y(:, signal_cutoff:end) = 0;
+
+y_nozero = y(y~=0);
+signal2dMean = mean(y_nozero, 'all');
+signal2dRMS = sqrt(mean(y_nozero.^2, 'all'));
+signal2dSTD = std(y_nozero(:));
+
+y = y(:, xpos);
 
 % Initialise signal results
 signals = zeros(length(y),1);
@@ -78,6 +106,7 @@ changeCount = 1;
 tempPeaks = []; % vector containing a current selection of peaks
 
 % RMS, STD and Mean over entire signal
+signal_cutoff = 1700;
 y_nozero = y(y~=0);
 signalRMS = sqrt(mean(y_nozero.^2));
 signalSTD = std(y_nozero);
@@ -92,14 +121,15 @@ for i=lag+1:length(y)
     end
     
     % if currently on peak ( (tally)mod2 == 0 ): add point to temp
-    if (mod(changeCount, 2) == 0) & i<1700
+    if (mod(changeCount, 2) == 0) & i<signal_cutoff
         tempPeaks = [tempPeaks, y(i)];
     end
 
     % if new value is above threshold
     % (new val)-(mean of previous window) > (std of prev window)
     if (abs(y(i))-avgFilter(i-1) > threshold*stdFilter(i-1))...
-        & (abs(y(i))-signalMean > threshold*signalSTD)
+        & (abs(y(i))-signalRMS > threshold*signalSTD)...
+        & (abs(y(i))-signal2dRMS > threshold*signal2dSTD)
         
         peakAsign = 1; % classify point as a PEAK
 
@@ -129,7 +159,7 @@ for i=lag+1:length(y)
     changeCon(1,1) = changeCon(1,2); % update change condition
     changeCon(1,2) = peakAsign;
 
-    avgFilter(i) = mean(filteredY(i-lag:i));
+    avgFilter(i) = sqrt(mean(filteredY(i-lag:i).^2));
     stdFilter(i) = std(filteredY(i-lag:i));
 end
 
