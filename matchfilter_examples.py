@@ -272,5 +272,5 @@ if 0:
     np.savetxt('Results/Mean-PSR.csv', allPSR, delimiter=',')
     np.savetxt('Results/Defect-PSR.csv', allPSRs, delimiter=',')
 
-    np.savetxt('Results/Mean-RangeRSN.csv', allPSR, delimiter=',')
-    np.savetxt('Results/Defect-RangeRSN.csv', allPSRs, delimiter=',')
+    np.savetxt('Results/Mean-RangeRSN.csv', allRangeRsn, delimiter=',')
+    np.savetxt('Results/Defect-RangeRSN.csv', allRangeRsns, delimiter=',')
