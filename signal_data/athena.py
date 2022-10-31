@@ -30,7 +30,7 @@ def ReadAScan(filename):
 
     fid.close()
 
-    return t, data
+    return t, data, dt
 
 
 def ReadBScan(filename):
@@ -61,4 +61,4 @@ def ReadBScan(filename):
 
     fid.close()
 
-    return t, x, data
+    return t, x, data, dt

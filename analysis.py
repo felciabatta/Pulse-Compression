@@ -8,6 +8,7 @@ Created on Thu Oct 27 15:23:26 2022
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import stats
 from compress import signal
 from LaTeXplots import mycols
 
@@ -27,11 +28,11 @@ maxCoordsREF, relMaxCoordsREF, _, peakAmplitudes = pulse.find_defects(
 MAP.ax.scatter(maxCoordsREF[:, 1], maxCoordsREF[:, 0],
                s=10, c=mycols['sweetpink'], marker='x', zorder=10)
 
-# %%
+# %% EXTRACT AND PLOT SNR HEATMAP
 
-SNR_Results = np.genfromtxt("SNR_Results.csv", delimiter=",")
+SNR_Results = np.genfromtxt("Results/SNRResultsEstimate.csv", delimiter=",")
 
-meanTrueSNR_Results = np.genfromtxt("Mean-TrueSNR.csv", delimiter=",")
+meanTrueSNR_Results = np.genfromtxt("Results/Mean-TrueSNR.csv", delimiter=",")
 
 i_mean = range(5, 24, 6)
 i_defects = [i for i in range(24) if i not in i_mean]
@@ -41,3 +42,7 @@ defects = SNR_Results[:, i_defects]
 
 plt.pcolormesh(np.flip(means, 0))
 plt.pcolormesh(np.flip(meanTrueSNR_Results, 0))
+
+# kruskal test
+_, pvalue = stats.kruskal(*list(meanTrueSNR_Results)) # signals
+_, pvalue = stats.kruskal(*list(meanTrueSNR_Results.transpose())) # filters
