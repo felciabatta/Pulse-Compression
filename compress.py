@@ -265,8 +265,8 @@ class signal:
             self.defectWidths[i] = sg.peak_widths(
                 signal[:, tx[1]], [tx[0]])[0]
 
-        #TODO: fix bug where width is not found - hence exclude 0s from mean
-        self.defectWidth = np.mean(self.defectWidths[self.defectWidths!=0])
+        # TODO: fix bug where width is not found - hence exclude 0s from mean
+        self.defectWidth = np.mean(self.defectWidths[self.defectWidths != 0])
 
         if timeformat:
             self.defectWidths *= self.T_b
@@ -312,11 +312,11 @@ class signal:
 
         return self.PSRs, self.PSR
 
-    def filter_example(self, filter_method=1, signal=None,
+    def filter_example(self, filter_method=1, signal=None, golay_method=None,
                        remove_pulse=1, trim=0, remove_matchedpulse=0,
                        window=(100, 10),
-                       title='Title', x=10, MIN=0, MAX=None,
-                       plotresults=(1, 1, 1, 1, 1)):
+                       title='Title', x=10, MIN=0, MAX=None, cmap='inferno',
+                       plotresults=(1, 1, 1, 1, 1), saveplot=(0, 0, 0, 0, 0)):
 
         if signal is None:
             signal = self.data_b
@@ -344,26 +344,45 @@ class signal:
                          remove_matchedpulse=remove_matchedpulse)
 
         if MAX is None:
-            MAXbf = 0.7*self.get_max()
-            MAXaf = 0.7*self.get_max(self.results)
+            MAXbf = 0.65*self.get_max()
+            MAXaf = 0.65*self.get_max(self.results)
         else:
             MAXbf = MAX
             MAXaf = MAX
+
+        if golay_method:
+            fm = golay_method
+        else:
+            fm = filter_method
+        fmstr = {1: '\n Match Filtered',
+                 2: '\n Wiener Filtered',
+                 12: '\n Match'+u'\u2013'+'Wiener Filtered',
+                 21: '\n Wiener'+u'\u2013'+'Match Filtered'}
 
         plotfunc = [self.plot1d, self.plot1d, self.plot1d,
                     self.plot2d, self.plot2d]
 
         plotargs = [{'title': title},
-                    {'data': self.data_b[:, x], 't':self.t_b, 'title':title},
-                    {'data': self.results[:, x], 't':self.t_b, 'title':title},
-                    {'MIN': MIN, 'MAX': MAXbf, 'title': title},
-                    {'data': self.results, 'MIN': MIN, 'MAX': MAXaf, 'title': title}]
+                    {'data': self.data_b[:, x], 't':self.t_b,
+                     'title':title},
+                    {'data': self.results[:, x], 't':self.t_b,
+                     'title': title+fmstr[fm]},
+                    {'MIN': MIN, 'MAX': MAXbf, 'cmap': cmap,
+                     'title': title},
+                    {'data': self.results, 'MIN': MIN, 'MAX': MAXaf,
+                     'cmap': cmap, 'title': title+fmstr[fm]}]
 
         plots = [None]*5
 
         for i, _ in enumerate(plotresults):
             if plotresults[i]:
                 plots[i] = plotfunc[i](**plotargs[i])
+
+
+        save_suffix = [" Excitation", f" x={x}", f" x={x}", " Raw", ""]
+        for i, s in enumerate(saveplot):
+            if s and (plots[i] is not None):
+                plots[i].save(plots[i].title + save_suffix[i])
 
         return plots
 
@@ -406,20 +425,29 @@ class signal:
 
         plot = LaPlot(plt.plot, [t, data],
                       {'color': mycols['sweetpink'], 'linewidth': 1},
-                      xlim=(t[0], t[-1]), ylim=ylim, title=title,
+                      xlim=(t[0], t[-1].round(6)), ylim=ylim, title=title,
                       xlabel=xlabel, ylabel=ylabel, showgrid=1)
         return plot
 
     def plot2d(self, data=None, t=None, x=None,  MIN=None, MAX=None,
-               title=r'Signal', xlabel=r'Position, $x$',
-               ylabel=r'Time, $t\,$seconds'):
+               title=r'Signal', xlabel=r'Position, $x$', cmap='viridis',
+               ylabel=r'Time, $t\,$seconds', rast=True, axfacecol='k',
+               dpi=1200):
         if data is None:
             data = self.data_b
+        if t is None:
             t = self.t_b
+        if x is None:
             x = self.x
-        plot = LaPlot(plt.pcolormesh, [data], {"vmin": MIN, "vmax": MAX},
+
+        t = np.concatenate((t, [t[-1]+self.T_b]))
+        x = np.concatenate((x, [x[-1]+1]))
+
+        plot = LaPlot(plt.pcolormesh, (x, t, data),
+                      {"vmin": MIN, "vmax": MAX, "cmap": cmap,
+                       "rasterized": rast, "snap": 1, "edgecolors": "face"},
                       title=title, xlabel=xlabel, ylabel=ylabel, showgrid=0,
-                      figsize=(4, 6))
+                      figsize=(4, 6), axfacecol=axfacecol, dpi=dpi)
         return plot
 
     def save_results(self, data=None, filename=None):

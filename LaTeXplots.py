@@ -22,9 +22,12 @@ mpl.rcdefaults()
 
 mpl.rcParams['font.family'] = ['serif']
 
-mpl.rcParams['font.serif'] = ['CMU Serif']+mpl.rcParamsDefault['font.serif']
+mpl.rcParams['font.serif'] = ['NewComputerModern10']+mpl.rcParamsDefault['font.serif']
 
-mpl.rcParams['font.sans-serif'] = ['CMU Sans Serif'] + \
+mpl.rcParams['font.sans-serif'] = ['NewComputerModernSans10'] + \
+    mpl.rcParamsDefault['font.sans-serif']
+
+mpl.rcParams['font.monospace'] = ['NewComputerModernMono10'] + \
     mpl.rcParamsDefault['font.sans-serif']
 
 mpl.rcParams['mathtext.fontset'] = 'cm'
@@ -48,33 +51,46 @@ class LaPlot:
     """Create figure & axes formatted like LaTeX
     """
 
-    def __init__(self, plotfunc, plotargs, plotkwargs={}, title='Title', xlabel=r'$X$ - is a dash, $-0.50$ is a minus', ylabel=r'$Y$',
-                 xlim=None, ylim=None, showgrid=False, figsize=(5,3)):
+    def __init__(self, plotfunc, plotargs, plotkwargs={}, title='Title',
+                 xlabel=r'$X$ - is a dash, $-0.50$ is a minus', ylabel=r'$Y$',
+                 xlim=None, ylim=None, showgrid=False, figsize=(5, 3), dpi=600,
+                 xticks=None, yticks=None, axfacecol='w',
+                 titlept=14, labelpt=12, tlabelpt=8):
         self.title = title
         self.xlabel = xlabel
         self.ylabel = ylabel
         self.xlim = xlim
         self.ylim = ylim
         self.showgrid = showgrid
+        self.axfacecol = axfacecol
 
-        self.fig = plt.figure(dpi=250, figsize=figsize)
+        self.titlept = titlept
+        self.labelpt = labelpt
+        self.tlabelpt = tlabelpt
+
+        self.xticks = xticks
+        self.yticks = yticks
+
+        self.dpi = dpi
+
+        self.fig = plt.figure(dpi=self.dpi, figsize=figsize)
         self.ax = self.fig.add_subplot(111)
 
         plotfunc(*plotargs, **plotkwargs)
         self.set_labels()
         self.set_axes_params()
         plt.show()
-        self.fix_symbols()
+        # self.fix_symbols()
 
-    def set_labels(self, titlept=16, labelpt=12, tlabelpt=10):
+    def set_labels(self):
         # plt.legend(loc='upper right', markerscale=10, fontsize=tlabelpt,
         # framealpha=0.95, handletextpad=0.2, handlelength=1.)
 
-        self.ax.set_title(self.title, y=1.0, fontsize=titlept)
-        self.ax.set_xlabel(self.xlabel, fontsize=labelpt)
-        self.ax.set_ylabel(self.ylabel, fontsize=labelpt)
+        self.ax.set_title(self.title, y=1.0, fontsize=self.titlept)
+        self.ax.set_xlabel(self.xlabel, fontsize=self.labelpt)
+        self.ax.set_ylabel(self.ylabel, fontsize=self.labelpt)
 
-    def set_axes_params(self, equal_aspect=False, width=0.4, tlabelpt=10):
+    def set_axes_params(self, equal_aspect=False, width=0.4):
         # limits & aspect
         if equal_aspect:
             self.ax.set_aspect('equal', 'box')
@@ -88,23 +104,36 @@ class LaPlot:
         if self.showgrid:
             self.ax.grid(color='#e2e2e2', linewidth=width)
 
-        # ticks
-        self.ax.tick_params(labelsize=tlabelpt, direction='in', width=0.4)
+        self.ax.set_facecolor(self.axfacecol)
 
-    def fix_symbols(self):
-        # print(self.ax.get_xticklabels()) # for bugfixing
-        self.ax.set_xticklabels([i.get_text().replace('−', '$-$')
-                                for i in self.ax.get_xticklabels()])
-        self.ax.set_yticklabels([i.get_text().replace('−', '$-$')
-                                for i in self.ax.get_yticklabels()])
+        # ticks
+        self.ax.tick_params(labelsize=self.tlabelpt, direction='in', width=0.4)
+
+        if self.xticks is not None:
+            self.ax.set_xticks(self.xticks[0], self.xticks[1])
+        else:
+            self.ax.ticklabel_format(style='sci', axis='x', scilimits=(-3, 3),
+                                     useMathText=True, )
+        if self.yticks is not None:
+            self.ax.set_yticks(self.yticks[0], self.yticks[1])
+        else:
+            self.ax.ticklabel_format(style='sci', axis='y', scilimits=(-3, 3),
+                                 useMathText=True, )
+
+    # def fix_symbols(self):
+    #     # print(self.ax.get_xticklabels()) # for bugfixing
+    #     self.ax.set_xticklabels([i.get_text().replace('−', '$-$')
+    #                             for i in self.ax.get_xticklabels()])
+    #     self.ax.set_yticklabels([i.get_text().replace('−', '$-$')
+    #                             for i in self.ax.get_yticklabels()])
 
     def save(self, filename=None):
         if filename is None:
             filename = self.title
-        filename = self.format_filename(filename) # remove format characters
+        filename = self.format_filename(filename)  # remove format characters
 
         self.fig.savefig('Figures/'+filename+'.pdf', format='pdf',
-                         bbox_inches='tight', pad_inches=0)
+                         bbox_inches='tight', pad_inches=0, dpi=self.dpi)
 
     def format_filename(self, mystr=None, chars=['\\,', '$', '\\', '\n']):
         if mystr is None:
