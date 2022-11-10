@@ -138,3 +138,5 @@ dmypy.json
 # personal
 signal_data/barker_2MHz_13OLD/
 signal_data/golayOLD/
+Figures/Unrasterised/
+test.py

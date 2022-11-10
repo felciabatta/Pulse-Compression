@@ -107,8 +107,8 @@ class signal:
         else:
             file_b = bscan
 
-        self.t_a, self.data_a = athena.ReadAScan(file_a)
-        self.t_b, self.x, self.data_b = athena.ReadBScan(file_b)
+        self.t_a, self.data_a, self.T_a = athena.ReadAScan(file_a)
+        self.t_b, self.x, self.data_b, self.T_b = athena.ReadBScan(file_b)
 
         self.match2d()
 
@@ -176,7 +176,8 @@ class signal:
             xend = n+2*window+1
             prodarray[:, n] = np.prod(s1[:, x0:xend], 1)
             prodarray[:, n] /= max(prodarray[:signal_cutoff, n])
-            # prodarray[:, n] = np.log(abs(prodarray[:, n]))*np.sign(prodarray[:, n])
+            # prodarray[:, n] =
+            # np.log(abs(prodarray[:, n]))*np.sign(prodarray[:, n])
 
         self.results = prodarray
 
@@ -219,24 +220,26 @@ class signal:
             coordGuess = coordGuess + np.array(
                 [[0, 0], [110, 15], [221, 30], [331, 45], [442, 60]])
 
-        coordError = np.zeros(coordGuess.shape)
-        peakAmplitudes = np.zeros(coordGuess.shape[0])
+        self.coordError = np.zeros(coordGuess.shape)
+        self.peakAmplitudes = np.zeros(coordGuess.shape[0])
         for i, c in enumerate(coordGuess):
             tx0 = c-window
             txend = c+window+1
 
             maxIndex = np.argmax(data[tx0[0]:txend[0], tx0[1]:txend[1]])
-            coordError[i] = (np.unravel_index(
+            self.coordError[i] = (np.unravel_index(
                 maxIndex, window*2+1) - window).astype(int)
 
-            peakAmplitudes[i] = np.amax(data[tx0[0]:txend[0], tx0[1]:txend[1]])
+            self.peakAmplitudes[i] = np.amax(
+                data[tx0[0]:txend[0], tx0[1]:txend[1]])
 
-        maxCoords = (coordError + coordGuess).astype(int)
-        relMaxCoords = (maxCoords - maxCoords[0]).astype(int)
-        return maxCoords, relMaxCoords, coordError, peakAmplitudes
+        self.maxCoords = (self.coordError + coordGuess).astype(int)
+        self.relMaxCoords = (self.maxCoords - self.maxCoords[0]).astype(int)
+        return self.maxCoords, self.relMaxCoords, self.coordError, self.peakAmplitudes
 
     def trueSNR(self, peakAmplitudes=[], s1=None, s2=None,
                 removed_pulse=0, delay=2, trim=0, signal_cutoff=1700):
+        # TODO: remove peakAmplitude argument
         if s1 is None:
             s1 = self.results
         if s2 is None:
@@ -246,16 +249,74 @@ class signal:
             tend = delay+len(s2)+trim
 
         totalRMS = np.sqrt(np.mean(s1[tend:signal_cutoff, :]**2))
-        SNRs = peakAmplitudes/totalRMS
-        SNR = np.mean(SNRs)
+        self.SNRs = self.peakAmplitudes/totalRMS
+        self.SNR = np.mean(self.SNRs)
 
-        return SNRs, SNR
+        return self.SNRs, self.SNR
 
-    def filter_example(self, filter_method=1, signal=None,
+    def peakWidths(self, peakCoords=None, signal=None, timeformat=1):
+        if signal == None:
+            signal = self.results
+        if peakCoords == None:
+            peakCoords = self.maxCoords
+
+        self.defectWidths = np.zeros(len(peakCoords))
+        for i, tx in enumerate(peakCoords):
+            self.defectWidths[i] = sg.peak_widths(
+                signal[:, tx[1]], [tx[0]])[0]
+
+        # TODO: fix bug where width is not found - hence exclude 0s from mean
+        self.defectWidth = np.mean(self.defectWidths[self.defectWidths != 0])
+
+        if timeformat:
+            self.defectWidths *= self.T_b
+            self.defectWidth *= self.T_b
+            # print("\nRange resolution is", self.defectWidth.round(8),
+            #       "s, \nfrom", list(self.defectWidths.round(8)))
+            print("\nRange resolution is", (self.defectWidth/10e-9).round(1),
+                  "ns, \nfrom", list((self.defectWidths/10e-9).round(1)))
+        else:
+            print("\nRange resolution is ", self.defectWidth.round(2),
+                  "samples, \nfrom", list(self.defectWidths.around(2)))
+
+        return self.defectWidths, self.defectWidth
+
+    def peakSidelobeRatio(self, peakCoords=None, signal=None):
+        """Find Peak Side Lobe Ratio"""
+        if signal == None:
+            signal = self.results
+        if peakCoords == None:
+            peakCoords = self.maxCoords
+
+        self.PSRs = np.zeros(len(peakCoords))
+        for i, tx in enumerate(peakCoords):
+            peaks, properties = sg.find_peaks(signal[:, tx[1]], height=0)
+
+            # note that the defect in peakCoords may not appear in peaks
+            # as the original defect finder took max in a reigon, so if the max
+            # lay on a boundary, it is not guarateed to be a peak
+            # INSTEAD, we just take closest peak, to the "located defect"
+            peak_i = np.abs(peaks - tx[0]).argmin()
+
+            # redundant - unless change peak finding code to use find peaks, rather than max
+            # peak_i = np.where(peaks == tx[0])[0][0]
+
+            sides_t = peaks[[peak_i-1, peak_i+1]]
+            meanPS = np.mean(signal[sides_t, tx[1]])
+            self.PSRs[i] = signal[tx[0], tx[1]]/meanPS
+
+        self.PSR = np.mean(self.PSRs)
+
+        print("\nPeak Sidelobe Ratio is", self.PSR.round(1),
+              ", \nfrom", list(self.PSRs.round(1)))
+
+        return self.PSRs, self.PSR
+
+    def filter_example(self, filter_method=1, signal=None, golay_method=None,
                        remove_pulse=1, trim=0, remove_matchedpulse=0,
                        window=(100, 10),
-                       title='Title', x=10, MIN=0, MAX=None,
-                       plotresults=(1, 1, 1, 1, 1)):
+                       title='Title', x=10, MIN=0, MAX=None, cmap='inferno',
+                       plotresults=(1, 1, 1, 1, 1), saveplot=(0, 0, 0, 0, 0)):
 
         if signal is None:
             signal = self.data_b
@@ -283,20 +344,33 @@ class signal:
                          remove_matchedpulse=remove_matchedpulse)
 
         if MAX is None:
-            MAXbf = 0.7*self.get_max()
-            MAXaf = 0.7*self.get_max(self.results)
+            MAXbf = 0.65*self.get_max()
+            MAXaf = 0.65*self.get_max(self.results)
         else:
             MAXbf = MAX
             MAXaf = MAX
+
+        if golay_method:
+            fm = golay_method
+        else:
+            fm = filter_method
+        fmstr = {1: '\n Match Filtered',
+                 2: '\n Wiener Filtered',
+                 12: '\n Match'+u'\u2013'+'Wiener Filtered',
+                 21: '\n Wiener'+u'\u2013'+'Match Filtered'}
 
         plotfunc = [self.plot1d, self.plot1d, self.plot1d,
                     self.plot2d, self.plot2d]
 
         plotargs = [{'title': title},
-                    {'data': self.data_b[:, x], 't':self.t_b, 'title':title},
-                    {'data': self.results[:, x], 't':self.t_b, 'title':title},
-                    {'MIN': MIN, 'MAX': MAXbf, 'title': title},
-                    {'data': self.results, 'MIN': MIN, 'MAX': MAXaf, 'title': title}]
+                    {'data': self.data_b[:, x], 't':self.t_b,
+                     'title':title},
+                    {'data': self.results[:, x], 't':self.t_b,
+                     'title': title+fmstr[fm]},
+                    {'MIN': MIN, 'MAX': MAXbf, 'cmap': cmap,
+                     'title': title},
+                    {'data': self.results, 'MIN': MIN, 'MAX': MAXaf,
+                     'cmap': cmap, 'title': title+fmstr[fm]}]
 
         plots = [None]*5
 
@@ -304,10 +378,17 @@ class signal:
             if plotresults[i]:
                 plots[i] = plotfunc[i](**plotargs[i])
 
+
+        save_suffix = [" Excitation", f" x={x}", f" x={x}", " Raw", ""]
+        for i, s in enumerate(saveplot):
+            if s and (plots[i] is not None):
+                plots[i].save(plots[i].title + save_suffix[i])
+
         return plots
 
     def SNR_example(self, coordGuess, plots, signal=None, plotMyGuess=0,
-                    window=np.array([50, 5]), removed_pulse=1, delay=2, trim=0):
+                    window=np.array([50, 5]), removed_pulse=1, delay=2,
+                    trim=0):
         if signal is None:
             signal = self.results
 
@@ -321,7 +402,8 @@ class signal:
 
         if plotMyGuess:
             plots[-1].ax.scatter(coordGuess[:, 1], coordGuess[:, 0],
-                                 s=10, c=mycols['calmblue'], marker='x', zorder=10)
+                                 s=10, c=mycols['calmblue'], marker='x',
+                                 zorder=10)
 
         maxCoords, _, _, peakAmplitudes = self.find_defects(coordGuess,
                                                             window=window)
@@ -330,7 +412,7 @@ class signal:
         plots[-1].ax.scatter(maxCoords[:, 1], maxCoords[:, 0], s=10,
                              c=mycols['sweetpink'], marker='x', zorder=10)
 
-        print("SNR is "+str(SNR.round(1))+" from", list(SNRs.round(1)))
+        print("\nSNR is "+str(SNR.round(1))+" from", list(SNRs.round(1)))
 
         return maxCoords, SNRs, SNR
 
@@ -343,20 +425,29 @@ class signal:
 
         plot = LaPlot(plt.plot, [t, data],
                       {'color': mycols['sweetpink'], 'linewidth': 1},
-                      xlim=(t[0], t[-1]), ylim=ylim, title=title,
+                      xlim=(t[0], t[-1].round(6)), ylim=ylim, title=title,
                       xlabel=xlabel, ylabel=ylabel, showgrid=1)
         return plot
 
     def plot2d(self, data=None, t=None, x=None,  MIN=None, MAX=None,
-               title=r'Signal', xlabel=r'Position, $x$',
-               ylabel=r'Time, $t\,$seconds'):
+               title=r'Signal', xlabel=r'Position, $x$', cmap='viridis',
+               ylabel=r'Time, $t\,$seconds', rast=True, axfacecol='k',
+               dpi=1200):
         if data is None:
             data = self.data_b
+        if t is None:
             t = self.t_b
+        if x is None:
             x = self.x
-        plot = LaPlot(plt.pcolormesh, [data], {"vmin": MIN, "vmax": MAX},
+
+        t = np.concatenate((t, [t[-1]+self.T_b]))
+        x = np.concatenate((x, [x[-1]+1]))
+
+        plot = LaPlot(plt.pcolormesh, (x, t, data),
+                      {"vmin": MIN, "vmax": MAX, "cmap": cmap,
+                       "rasterized": rast, "snap": 1, "edgecolors": "face"},
                       title=title, xlabel=xlabel, ylabel=ylabel, showgrid=0,
-                      figsize=(4, 6))
+                      figsize=(4, 6), axfacecol=axfacecol, dpi=dpi)
         return plot
 
     def save_results(self, data=None, filename=None):
