@@ -111,6 +111,7 @@ class signal:
         self.t_b, self.x, self.data_b, self.T_b = athena.ReadBScan(file_b)
 
         self.match2d()
+        self.autocorrelate()
 
     def match1d(self, remove_pulse=False, s1=None, s2=None, delay=2, trim=0):
         if s1 is None:
@@ -143,6 +144,13 @@ class signal:
 
         if remove_matchedpulse:
             self.remove_datapoints(ub=remove_matchedpulse)
+
+    def autocorrelate(self, signal=None):
+        if signal is None:
+            signal = np.copy(self.data_a)
+
+        self.autocorrelated = sg.correlate(signal, signal, mode='same')/(len(signal))
+        return self.autocorrelated
 
     def wien(self, s1=None, s2=None, remove_pulse=False,
              delay=2, trim=0, window=None, power=None):
@@ -362,11 +370,17 @@ class signal:
         plotfunc = [self.plot1d, self.plot1d, self.plot1d,
                     self.plot2d, self.plot2d]
 
-        plotargs = [{'title': title},
+        plotargs = [{'data':(self.data_a, self.autocorrelated),
+                     't':(self.t_a,)*2,
+                     'subplots':(211, 212), 'figsize':(5, 5),
+                     'title': [title, title+', Auto-Correlated'],
+                     'ylabel':[r'Amplitude, $A$', r'Similarity Score, $S$']},
                     {'data': self.data_b[:, x], 't':self.t_b,
-                     'title':title},
+                     'title':title,
+                     'ylabel':r'Similarity Score, $S$'},
                     {'data': self.results[:, x], 't':self.t_b,
-                     'title': title+fmstr[fm]},
+                     'title': title+fmstr[fm],
+                     'ylabel':r'Similarity Score, $S$'},
                     {'MIN': MIN, 'MAX': MAXbf, 'cmap': cmap,
                      'title': title},
                     {'data': self.results, 'MIN': MIN, 'MAX': MAXaf,
@@ -382,7 +396,10 @@ class signal:
         save_suffix = [" Excitation", f" x={x}", f" x={x}", " Raw", ""]
         for i, s in enumerate(saveplot):
             if s and (plots[i] is not None):
-                plots[i].save(plots[i].title + save_suffix[i])
+                if type(plots[i].title) == list or type(plots[i].title) == tuple:
+                    plots[i].save(plots[i].title[0] + save_suffix[i])
+                else:
+                    plots[i].save(plots[i].title + save_suffix[i])
 
         return plots
 
@@ -417,16 +434,34 @@ class signal:
         return maxCoords, SNRs, SNR
 
     def plot1d(self, data=None, t=None, i0=None, iend=None, title=r'Signal',
-               xlabel=r'Time, $t\,$seconds', ylabel=r'Amplitude, $A$',
-               ylim=None):
+               xlabel=None, ylabel=None,
+               ylim=None, subplots=None, figsize=(5,3)):
         if data is None:
             data = self.data_a[i0:iend]
             t = self.t_a[i0:iend]
 
-        plot = LaPlot(plt.plot, [t, data],
-                      {'color': mycols['sweetpink'], 'linewidth': 1},
-                      xlim=(t[0], t[-1].round(6)), ylim=ylim, title=title,
-                      xlabel=xlabel, ylabel=ylabel, showgrid=1)
+        if subplots is None:
+            if xlabel is None:
+                xlabel=r'Time, $t\,$seconds'
+            if ylabel is None:
+                ylabel=r'Amplitude, $A$'
+            plot = LaPlot(plt.plot, [t, data],
+                          {'color': mycols['sweetpink'], 'linewidth': 1},
+                          xlim=(t[0], t[-1]), ylim=ylim, title=title,
+                          xlabel=xlabel, ylabel=ylabel, showgrid=1)
+        else:
+            if xlabel is None:
+                xlabel=[r'Time, $t\,$seconds']*2
+            if ylabel is None:
+                ylabel=[r'Amplitude, $A$']*2
+            N = len(data)
+            plotargs = [(t[i], data[i]) for i in range(N)]
+            plotkwargs = [{'color': mycols['sweetpink'], 'linewidth': 1}]*N
+            plot = LaPlot(plt.plot, plotargs, plotkwargs,
+                          xlim=(t[0][0], t[0][-1]), ylim=ylim, title=title,
+                          xlabel=xlabel, ylabel=ylabel, showgrid=1,
+                          subplots=subplots, figsize=figsize)
+            # TODO: Update so takes multiple lims, titles, labels, etc...
         return plot
 
     def plot2d(self, data=None, t=None, x=None,  MIN=None, MAX=None,
