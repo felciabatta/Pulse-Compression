@@ -91,7 +91,13 @@ def results_plot(data, orderfunc=np.mean, title='Title', MIN=None, MAX=None):
     plot = LaPlot(plt.pcolormesh, (data,), kwargs,
                   title=title,
                   xlabel=xlbl, ylabel=ylbl,
-                  xticks=xtk, yticks=ytk, figsize=np.array((4, 5.5))*.85)
+                  xticks=xtk, yticks=ytk, figsize=np.array((4.2, 4))*.85)
+    for i, x in enumerate(list(xtk[0])):
+        for j, y in enumerate(list(ytk[0])):
+            plot.ax.text(x, y, str(abs(np.round(data[j][i], 1))),
+                         ha='center', va='center', c='#ff008f',
+                         weight='bold')
+
 
     return plot
 
@@ -117,10 +123,11 @@ def results_plot(data, orderfunc=np.mean, title='Title', MIN=None, MAX=None):
 # figsize = (4, 5.5)
 
 orderfunc = np.mean
-save_results = 0
+save_results = 1
 
 MAX = np.max((meanTrueSNR_Results, meanPSR_Results))
 MIN = np.min((meanTrueSNR_Results, meanPSR_Results))
+MAX, MIN = None, None
 
 PLOT1 = results_plot(means, orderfunc,
                      'Estimate Signal'+u'\u2013'+'Noise Ratio')
@@ -134,8 +141,8 @@ PLOT3 = results_plot(meanPSR_Results, orderfunc,
 PLOT4 = results_plot(weighted_SNR_PSR, orderfunc,
                      rf'${w_SNR}\,$SNR + ${w_PSR}\,$PSR', MIN, MAX)
 
-PLOT5 = results_plot(-meanRangeRsn_Results, orderfunc,
-                     'Spatial Resolution')
+PLOT5 = results_plot(-meanRangeRsn_Results*10**7 , orderfunc,
+                     r'Spatial Resolution, $\times10^{-1}\mu$s')
 
 
 # PLOT2 = LaPlot(plt.pcolormesh,

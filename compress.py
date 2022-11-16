@@ -149,7 +149,8 @@ class signal:
         if signal is None:
             signal = np.copy(self.data_a)
 
-        self.autocorrelated = sg.correlate(signal, signal, mode='same')/(len(signal))
+        self.autocorrelated = sg.correlate(
+            signal, signal, mode='same')/(len(signal))
         return self.autocorrelated
 
     def wien(self, s1=None, s2=None, remove_pulse=False,
@@ -360,21 +361,37 @@ class signal:
 
         if golay_method:
             fm = golay_method
+            autocorr_args = \
+                {'data': (self.data_a, self.autocorrelated,
+                          self.data_a_C, self.autocorrelated_C,
+                          self.autocorrelated_S),
+                 't': (self.t_a,)*5,
+                 'subplots': (321, 323, 322, 324, 313),
+                 'figsize': np.array((6, 6))*0.9,
+                 'title': [title, 'G.C. Auto-Correlated',
+                           'Complementary Code', 'C.C. Auto-Correlated',
+                           'Sum of Auto-Correlated Codes'],
+                 'ylabel': [r'Amplitude, $a$', r'Similarity',
+                            '', '', r'Similarity'],
+                 # 'xlabel': [r'Time, $t\,$seconds']*5}
+                  'xlabel': ['', r'Time, $t\,$seconds']*2+[r'Time, $t\,$seconds']}
         else:
             fm = filter_method
-        fmstr = {1: '\n Match Filtered',
+            autocorr_args = \
+                {'data': (self.data_a, self.autocorrelated),
+                 't': (self.t_a,)*2,
+                 'subplots': (211, 212), 'figsize': (5, 5),
+                 'title': [title, title+', Auto-Correlated'],
+                 'ylabel': [r'Amplitude, $a$', r'Similarity Score']}
+        fmstr = {1: '\n Matched Filtered',
                  2: '\n Wiener Filtered',
-                 12: '\n Match'+u'\u2013'+'Wiener Filtered',
-                 21: '\n Wiener'+u'\u2013'+'Match Filtered'}
+                 12: '\n Matched'+u'\u2013'+'Wiener Filtered',
+                 21: '\n Wiener'+u'\u2013'+'Matched Filtered'}
 
         plotfunc = [self.plot1d, self.plot1d, self.plot1d,
                     self.plot2d, self.plot2d]
 
-        plotargs = [{'data':(self.data_a, self.autocorrelated),
-                     't':(self.t_a,)*2,
-                     'subplots':(211, 212), 'figsize':(5, 5),
-                     'title': [title, title+', Auto-Correlated'],
-                     'ylabel':[r'Amplitude, $A$', r'Similarity Score, $S$']},
+        plotargs = [autocorr_args,
                     {'data': self.data_b[:, x], 't':self.t_b,
                      'title':title,
                      'ylabel':r'Similarity Score, $S$'},
@@ -391,7 +408,6 @@ class signal:
         for i, _ in enumerate(plotresults):
             if plotresults[i]:
                 plots[i] = plotfunc[i](**plotargs[i])
-
 
         save_suffix = [" Excitation", f" x={x}", f" x={x}", " Raw", ""]
         for i, s in enumerate(saveplot):
@@ -417,7 +433,7 @@ class signal:
             coordGuess = coordGuess + np.array(
                 [[0, 0], [110, 15], [221, 30], [331, 45], [442, 60]])
 
-        if plotMyGuess:
+        if plotMyGuess and (plots[-1] is not None):
             plots[-1].ax.scatter(coordGuess[:, 1], coordGuess[:, 0],
                                  s=10, c=mycols['calmblue'], marker='x',
                                  zorder=10)
@@ -426,8 +442,9 @@ class signal:
                                                             window=window)
         SNRs, SNR = self.trueSNR(peakAmplitudes, removed_pulse=removed_pulse,
                                  delay=delay, trim=trim)
-        plots[-1].ax.scatter(maxCoords[:, 1], maxCoords[:, 0], s=10,
-                             c=mycols['sweetpink'], marker='x', zorder=10)
+        if plots[-1] is not None:
+            plots[-1].ax.scatter(maxCoords[:, 1], maxCoords[:, 0], s=10,
+                                 c=mycols['sweetpink'], marker='x', zorder=10)
 
         print("\nSNR is "+str(SNR.round(1))+" from", list(SNRs.round(1)))
 
@@ -435,25 +452,25 @@ class signal:
 
     def plot1d(self, data=None, t=None, i0=None, iend=None, title=r'Signal',
                xlabel=None, ylabel=None,
-               ylim=None, subplots=None, figsize=(5,3)):
+               ylim=None, subplots=None, figsize=(5, 3)):
         if data is None:
             data = self.data_a[i0:iend]
             t = self.t_a[i0:iend]
 
         if subplots is None:
             if xlabel is None:
-                xlabel=r'Time, $t\,$seconds'
+                xlabel = r'Time, $t\,$seconds'
             if ylabel is None:
-                ylabel=r'Amplitude, $A$'
+                ylabel = r'Amplitude, $a$'
             plot = LaPlot(plt.plot, [t, data],
                           {'color': mycols['sweetpink'], 'linewidth': 1},
                           xlim=(t[0], t[-1]), ylim=ylim, title=title,
                           xlabel=xlabel, ylabel=ylabel, showgrid=1)
         else:
             if xlabel is None:
-                xlabel=[r'Time, $t\,$seconds']*2
+                xlabel = [r'Time, $t\,$seconds']*len(subplots)
             if ylabel is None:
-                ylabel=[r'Amplitude, $A$']*2
+                ylabel = [r'Amplitude, $a$']*len(subplots)
             N = len(data)
             plotargs = [(t[i], data[i]) for i in range(N)]
             plotkwargs = [{'color': mycols['sweetpink'], 'linewidth': 1}]*N

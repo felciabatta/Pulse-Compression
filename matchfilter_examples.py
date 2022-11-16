@@ -11,8 +11,11 @@ import numpy as np
 x = 10  # slice to plot in 1D
 filter_methods = [1, 2, 12, 21]
 fm = 12
-save = (1, 0, 0, 1, 1)
-# save = (0, 0, 0, 0, 0)
+plotresults = (1, 0, 0, 0, 0)
+# save = (1, 0, 0, 1, 1)
+# save = (1, 0, 0, 0, 0)
+save = (1, 0, 0, 0, 0)
+
 
 # %% LOOP Everything
 allSNR = []
@@ -30,7 +33,8 @@ for i, fm in enumerate(filter_methods):
     title = r'Clean U.S. Pulse, $2\,$MHz'
 
     plots = pulse.filter_example(
-        filter_method=fm, title=title, x=x, MAX=0.06, saveplot=save)
+        filter_method=fm, title=title, x=x, MAX=0.06, saveplot=save,
+        plotresults=plotresults)
 
     # %% U.S. PULSE, 1MHz
 
@@ -39,7 +43,8 @@ for i, fm in enumerate(filter_methods):
     title = r'U.S. Pulse, $1\,$MHz'
 
     plots = pulse1.filter_example(
-        filter_method=fm, title=title, x=x, saveplot=save)
+        filter_method=fm, title=title, x=x,
+        saveplot=save, plotresults=plotresults)
 
     maxCoords_p1, SNRs_p1, SNR_p1 = pulse1.SNR_example(
         [550, 10], plots, plotMyGuess=1, window=np.array([40, 3]))
@@ -54,7 +59,8 @@ for i, fm in enumerate(filter_methods):
     title = r'U.S. Pulse, $2\,$MHz'
 
     plots = pulse2.filter_example(
-        filter_method=fm, title=title, trim=80, x=x, saveplot=save)
+        filter_method=fm, title=title, trim=80, x=x,
+        saveplot=save, plotresults=plotresults)
 
     maxCoords_p2, SNRs_p2, SNR_p2 = pulse2.SNR_example(
         [450, 10], plots, plotMyGuess=1, window=np.array([30, 2]), trim=80)
@@ -75,7 +81,8 @@ for i, fm in enumerate(filter_methods):
         tguess = 450
 
     plots = chirpS.filter_example(
-        filter_method=fm, title=title, trim=100, x=x, saveplot=save)
+        filter_method=fm, title=title, trim=100, x=x,
+        saveplot=save, plotresults=plotresults)
 
     maxCoords_cS, SNRs_cS, SNR_cS = chirpS.SNR_example(
         [tguess, 10], plots, plotMyGuess=1, window=np.array([40, 3]), trim=100)
@@ -90,7 +97,8 @@ for i, fm in enumerate(filter_methods):
     title = r'Chirp, $0.8\,'+u'\u2013'+'\,2.2\,$MHz, $6\,\mu$s'
 
     plots = chirpL.filter_example(
-        filter_method=fm, title=title, trim=-45, x=x, saveplot=save)
+        filter_method=fm, title=title, trim=-45, x=x,
+        saveplot=save, plotresults=plotresults)
 
     maxCoords_cL, SNRs_cL, SNR_cL = chirpL.SNR_example([550, 10], plots, plotMyGuess=1,
                                                        window=np.array([40, 3]), trim=-45)
@@ -114,7 +122,7 @@ for i, fm in enumerate(filter_methods):
 
     plots = bark1.filter_example(
         filter_method=fm, title=title, trim=-300, x=x, remove_matchedpulse=700,
-        saveplot=save)
+        saveplot=save, plotresults=plotresults)
 
     maxCoords_b1, SNRs_b1, SNR_b1 = bark1.SNR_example(
         [tguess, 10], plots, plotMyGuess=1, window=np.array([40, 3]),
@@ -130,7 +138,8 @@ for i, fm in enumerate(filter_methods):
     title = r'Barker Code ($13$), $2\,$MHz'
 
     plots = bark2.filter_example(
-        filter_method=fm, title=title, x=x, saveplot=save)
+        filter_method=fm, title=title, x=x,
+        saveplot=save, plotresults=plotresults)
 
     maxCoords_b2, SNRs_b2, SNR_b2 = bark2.SNR_example(
         [575, 10], plots, plotMyGuess=1, window=np.array([40, 3]))
@@ -206,11 +215,14 @@ for i, fm in enumerate(filter_methods):
     title = r'Golay Code ($3$), $2\,$MHz'
 
     golay_sum.results = golay.results + golayC.results
+    golay_sum.data_a_C = golayC.data_a
+    golay_sum.autocorrelated_C = golayC.autocorrelated
+    golay_sum.autocorrelated_S = golay_sum.autocorrelated + golay_sum.autocorrelated_C
 
     plotsS = golay_sum.filter_example(
         signal=golay_sum.results, filter_method=gfilt2, remove_pulse=0,
         title=title, x=x, golay_method=fm,
-        plotresults=(1, 1, 1, 1, 1), saveplot=save)
+        plotresults=plotresults, saveplot=save)
 
     maxCoords_gS, SNRs_gS, SNR_gS = golay_sum.SNR_example(
         [500, 10], plotsS, plotMyGuess=1, window=np.array([40, 3]), trim=100)

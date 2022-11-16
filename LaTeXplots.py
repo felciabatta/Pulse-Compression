@@ -161,11 +161,11 @@ class LaPlot:
         self.fig.savefig('Figures/'+filename+'.pdf', format='pdf',
                          bbox_inches='tight', pad_inches=0, dpi=self.dpi)
 
-    def format_filename(self, mystr=None, chars=['\\,', '$', '\\', '\n']):
+    def format_filename(self, mystr=None, chars=['\\,', '$', '\\', '\n', '{', '}']):
         if mystr is None:
             mystr = self.title
-
         for c in chars:
             mystr = mystr.replace(c, '')
+        mystr = mystr.replace('times10^', 'e')
 
         return mystr
