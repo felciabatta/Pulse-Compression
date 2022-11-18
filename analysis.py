@@ -18,34 +18,39 @@ from LaTeXplots import LaPlot
 
 pulse = signal("signal_data/pulse_2MHznonoise/pulse2mhz.dat",
                "signal_data/pulse_2MHznonoise/bscan.dat")
+title = r'Clean US Pulse, $2\,$MHz'+'\n Reference Scan'
 PLOT = pulse.plot1d(pulse.data_b[300:1000, 70], t=np.arange(300, 1000))
-MAP = pulse.plot2d(MIN=0, MAX=0.03)
+MAP = pulse.plot2d(MIN=0, MAX=0.03, cmap='inferno', dpi=300,
+                   title=title)
 
 coordGuessREF = np.array(
-    [[426, 10], [536, 25], [647, 40], [757, 55], [868, 70]])
+    [[450, 10], [550, 25], [650, 40], [750, 55], [850, 70]])
 
 maxCoordsREF, relMaxCoordsREF, _, peakAmplitudes = pulse.find_defects(
     coordGuessREF, pulse.data_b)
 
-MAP.ax.scatter(maxCoordsREF[:, 1], maxCoordsREF[:, 0],
+MAP.ax.scatter(coordGuessREF[:, 1], pulse.t_b[coordGuessREF[:, 0]],
                s=10, c=mycols['sweetpink'], marker='x', zorder=10)
+
+MAP.ax.scatter(maxCoordsREF[:, 1], pulse.t_b[maxCoordsREF[:, 0]],
+               s=10, c=mycols['calmblue'], marker='x', zorder=10)
 
 # %% EXTRACT DATA
 
-SNR_Results = np.genfromtxt("Results/SNRResultsEstimate.csv", delimiter=",")
+SNR_Results = np.genfromtxt("Results/SNRResultsEstimate.csv", delimiter=",")**2
+i_mean = range(5, 24, 6)
+i_defects = [i for i in range(24) if i not in i_mean]
+means = SNR_Results[:, i_mean]
+defects = SNR_Results[:, i_defects]
 
-meanTrueSNR_Results = np.genfromtxt("Results/Mean-TrueSNR.csv", delimiter=",")
-meanPSR_Results = np.genfromtxt("Results/Mean-PSR.csv", delimiter=",")
+meanTrueSNR_Results = np.genfromtxt("Results/Mean-TrueSNR.csv", delimiter=",")**2
+meanPSR_Results = np.genfromtxt("Results/Mean-PSR.csv", delimiter=",")**2
 meanRangeRsn_Results = np.genfromtxt(
     "Results/Mean-RangeRSN.csv", delimiter=",")
 w_SNR, w_PSR = 0.5, 0.5
 weighted_SNR_PSR = w_SNR*meanTrueSNR_Results+w_PSR*meanPSR_Results
+attenuation_Results = np.genfromtxt("Results/AttenuationResults.csv", delimiter=",")
 
-i_mean = range(5, 24, 6)
-i_defects = [i for i in range(24) if i not in i_mean]
-
-means = SNR_Results[:, i_mean]
-defects = SNR_Results[:, i_defects]
 
 # %% ORDER DATA ROWS & COLS by MEAN
 
@@ -76,8 +81,8 @@ def results_plot(data, orderfunc=np.mean, title='Title', MIN=None, MAX=None):
                      'Wien'+u'\u2013'+'Match'])
     slbl = np.array([r'Barker $13$'+'\n'+r'$1\,$MHz',
                      r'Barker $13$'+'\n'+r'$2\,$MHz',
-                     r'Chirp $2\,\mu$s'+'\n'+r'$0.8\,$-$\,2.2\,$MHz',
-                     r'Chirp $6\,\mu$s'+'\n'+r'$0.8\,$-$\,2.2\,$MHz',
+                     r'Chirp $2\,\mu$s'+'\n'+r'$0.8\,$'+u'\u2013'+'$\,2.2\,$MHz',
+                     r'Chirp $6\,\mu$s'+'\n'+r'$0.8\,$'+u'\u2013'+'$\,2.2\,$MHz',
                      r'Golay $3$'+'\n'+r'$2\,$MHz',
                      r'U.S. Pulse'+'\n'+r'$1\,$MHz',
                      r'U.S. Pulse'+'\n'+r'$2\,$MHz'])
@@ -102,25 +107,7 @@ def results_plot(data, orderfunc=np.mean, title='Title', MIN=None, MAX=None):
     return plot
 
 
-# %% PLOT SNR HEATMAP
-
-# xlbl, ylbl = r"Filter Method", r"Input Signal"
-# xlbl, ylbl = None, None
-
-# flbl = ["Match", "Wien", "Match-Wien", "Wien-Match"]
-# slbl = [r'Barker $13$'+'\n'+r'$1\,$MHz',
-#         r'Barker $13$'+'\n'+r'$2\,$MHz',
-#         r'Chirp $2\,\mu$s'+'\n'+r'$0.8\,$-$\,2.2\,$MHz',
-#         r'Chirp $6\,\mu$s'+'\n'+r'$0.8\,$-$\,2.2\,$MHz',
-#         r'Golay $3$'+'\n'+r'$2\,$MHz',
-#         r'U.S. Pulse'+'\n'+r'$1\,$MHz',
-#         r'U.S. Pulse'+'\n'+r'$2\,$MHz']
-
-# xtk = np.arange(0.5, 4, 1)
-# ytk = np.arange(0.5, 7, 1)
-# cmap = 'bone'
-# kwargs = {'cmap':cmap, "rasterized": 0, "snap": 1, "edgecolors": "face"}
-# figsize = (4, 5.5)
+# %% PLOT HEATMAPS
 
 orderfunc = np.mean
 save_results = 1
@@ -144,6 +131,7 @@ PLOT4 = results_plot(weighted_SNR_PSR, orderfunc,
 PLOT5 = results_plot(-meanRangeRsn_Results*10**7 , orderfunc,
                      r'Spatial Resolution, $\times10^{-1}\mu$s')
 
+PLOT6 = results_plot(-attenuation_Results, orderfunc, r'Attenuation Value')
 
 # PLOT2 = LaPlot(plt.pcolormesh,
 #                (order(, np.mean)[0],),
@@ -173,7 +161,7 @@ PLOT5 = results_plot(-meanRangeRsn_Results*10**7 , orderfunc,
 #                xlabel=xlbl, ylabel=ylbl,
 #                xticks=xtk, yticks=ytk, figsize=figsize)
 
-PLOTs = [PLOT1, PLOT2, PLOT3, PLOT4, PLOT5]
+PLOTs = [PLOT1, PLOT2, PLOT3, PLOT4, PLOT5, PLOT6]
 for p in PLOTs:
     if save_results:
         p.save()

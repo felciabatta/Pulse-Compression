@@ -71,7 +71,7 @@ class signal:
 
     """
 
-    def __init__(self, ascan=None, bscan=None, dataprompt=True):
+    def __init__(self, ascan=None, bscan=None, dataprompt=True, noise_level=0):
         """
 
 
@@ -95,6 +95,10 @@ class signal:
             None
         else:
             self.load_data(ascan, bscan)
+
+        if noise_level:
+            self.data_b = self.add_noise(scale=noise_level)
+
 
     def load_data(self, ascan=None, bscan=None):
         if ascan is None:
@@ -200,7 +204,20 @@ class signal:
             signal = self.results
         signal[lb:ub, :] = newval
 
-    def get_max(self, s1=None, s2=None, remove_pulse=1, delay=2, trim=0):
+    def add_noise(self, signal=None, scale=1):
+        if signal == None:
+            signal = np.copy(self.data_b)
+
+        mean = np.mean(signal)
+        std = np.std(signal)
+
+        out = signal + np.random.normal(mean, std, signal.shape)*scale
+
+        return out
+
+
+    def get_max(self, s1=None, s2=None, remove_pulse=1, delay=2, trim=0,
+                signal_cutoff=1700):
         if s1 is None:
             s1 = np.copy(self.data_b)
         else:
@@ -214,10 +231,10 @@ class signal:
         if remove_pulse:
             self.remove_excitation(s1, s2, delay=delay, trim=trim)
 
-        return np.max(s1)
+        return np.max(s1[:signal_cutoff, :])
 
     def find_defects(self, coordGuess=None, data=None,
-                     window=np.array([50, 5])):
+                     window=np.array([50, 5]), plot=None, plotMyGuess=0):
         if data is None:
             data = self.results
 
@@ -225,9 +242,14 @@ class signal:
             # coords of defect in US pulse no noise
             coordGuess = np.array(
                 [[426, 10], [536, 25], [647, 40], [757, 55], [868, 70]])
-        elif coordGuess.size == 2:
+        elif np.array(coordGuess).size == 2:
             coordGuess = coordGuess + np.array(
                 [[0, 0], [110, 15], [221, 30], [331, 45], [442, 60]])
+        else:
+            coordGuess = np.array(coordGuess)
+
+        if type(plot)==list or type(plot)==tuple:
+            plot = plot[-1]
 
         self.coordError = np.zeros(coordGuess.shape)
         self.peakAmplitudes = np.zeros(coordGuess.shape[0])
@@ -244,6 +266,17 @@ class signal:
 
         self.maxCoords = (self.coordError + coordGuess).astype(int)
         self.relMaxCoords = (self.maxCoords - self.maxCoords[0]).astype(int)
+
+        if plot is not None:
+            if plotMyGuess:
+                plot.ax.scatter(coordGuess[:, 1], self.t_b[coordGuess[:, 0]],
+                                s=200, c=mycols['sweetpink'], marker='x',
+                                zorder=10, linewidth=1)
+            plot.ax.scatter(self.maxCoords[:, 1],
+                            self.t_b[self.maxCoords[:, 0]], s=200,
+                            c=mycols['calmblue'], marker='x', zorder=10,
+                            linewidth=1)
+
         return self.maxCoords, self.relMaxCoords, self.coordError, self.peakAmplitudes
 
     def trueSNR(self, peakAmplitudes=[], s1=None, s2=None,
@@ -325,7 +358,8 @@ class signal:
                        remove_pulse=1, trim=0, remove_matchedpulse=0,
                        window=(100, 10),
                        title='Title', x=10, MIN=0, MAX=None, cmap='inferno',
-                       plotresults=(1, 1, 1, 1, 1), saveplot=(0, 0, 0, 0, 0)):
+                       plotresults=(1, 1, 1, 1, 1), saveplot=(0, 0, 0, 0, 0),
+                       dpi=1200):
 
         if signal is None:
             signal = self.data_b
@@ -370,7 +404,7 @@ class signal:
                  'figsize': np.array((6, 6))*0.9,
                  'title': [title, 'G.C. Auto-Correlated',
                            'Complementary Code', 'C.C. Auto-Correlated',
-                           'Sum of Auto-Correlated Codes'],
+                           'Sum of Auto-Correlated Golay Code Pair'],
                  'ylabel': [r'Amplitude, $a$', r'Similarity',
                             '', '', r'Similarity'],
                  # 'xlabel': [r'Time, $t\,$seconds']*5}
@@ -399,9 +433,9 @@ class signal:
                      'title': title+fmstr[fm],
                      'ylabel':r'Similarity Score, $S$'},
                     {'MIN': MIN, 'MAX': MAXbf, 'cmap': cmap,
-                     'title': title},
+                     'title': title, 'dpi':dpi},
                     {'data': self.results, 'MIN': MIN, 'MAX': MAXaf,
-                     'cmap': cmap, 'title': title+fmstr[fm]}]
+                     'cmap': cmap, 'title': title+fmstr[fm], 'dpi':dpi}]
 
         plots = [None]*5
 
@@ -432,23 +466,17 @@ class signal:
         elif np.array(coordGuess).size == 2:
             coordGuess = coordGuess + np.array(
                 [[0, 0], [110, 15], [221, 30], [331, 45], [442, 60]])
+        else:
+            coordGuess = np.array(coordGuess)
 
-        if plotMyGuess and (plots[-1] is not None):
-            plots[-1].ax.scatter(coordGuess[:, 1], coordGuess[:, 0],
-                                 s=10, c=mycols['calmblue'], marker='x',
-                                 zorder=10)
-
-        maxCoords, _, _, peakAmplitudes = self.find_defects(coordGuess,
-                                                            window=window)
-        SNRs, SNR = self.trueSNR(peakAmplitudes, removed_pulse=removed_pulse,
+        self.find_defects(coordGuess, window=window, plot=plots)
+        SNRs, SNR = self.trueSNR(self.peakAmplitudes, removed_pulse=removed_pulse,
                                  delay=delay, trim=trim)
-        if plots[-1] is not None:
-            plots[-1].ax.scatter(maxCoords[:, 1], maxCoords[:, 0], s=10,
-                                 c=mycols['sweetpink'], marker='x', zorder=10)
+
 
         print("\nSNR is "+str(SNR.round(1))+" from", list(SNRs.round(1)))
 
-        return maxCoords, SNRs, SNR
+        return self.maxCoords, SNRs, SNR
 
     def plot1d(self, data=None, t=None, i0=None, iend=None, title=r'Signal',
                xlabel=None, ylabel=None,

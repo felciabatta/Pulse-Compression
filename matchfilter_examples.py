@@ -10,10 +10,10 @@ import numpy as np
 
 x = 10  # slice to plot in 1D
 filter_methods = [1, 2, 12, 21]
-fm = 12
+fm = 1
+# plotresults = (1, 1, 1, 1, 1)
 plotresults = (1, 0, 0, 0, 0)
 # save = (1, 0, 0, 1, 1)
-# save = (1, 0, 0, 0, 0)
 save = (1, 0, 0, 0, 0)
 
 
@@ -26,21 +26,25 @@ allPSRs = []
 allRangeRsn = []
 allRangeRsns = []
 for i, fm in enumerate(filter_methods):
-    # %% CLEAN U.S. PULSE, 2MHz
+    # %% CLEAN US PULSE, 2MHz
 
     pulse = signal("signal_data/pulse_2MHznonoise/pulse2mhz.dat",
                    "signal_data/pulse_2MHznonoise/bscan.dat")
-    title = r'Clean U.S. Pulse, $2\,$MHz'
+    title = r'Clean US Pulse, $2\,$MHz'
 
     plots = pulse.filter_example(
         filter_method=fm, title=title, x=x, MAX=0.06, saveplot=save,
         plotresults=plotresults)
 
-    # %% U.S. PULSE, 1MHz
+    guess = [[440, 10], [550, 25], [650, 40], [750, 55], [850, 70]]
+    _,_,_,_ = pulse.find_defects(guess, pulse.data_b,
+                                 plot=plots[-2], plotMyGuess=1)
+
+    # %% US PULSE, 1MHz
 
     pulse1 = signal("signal_data/pulse_1MHznoise/pulse1mhz.dat",
                     "signal_data/pulse_1MHznoise/bscanpulse1.dat")
-    title = r'U.S. Pulse, $1\,$MHz'
+    title = r'US Pulse, $1\,$MHz'
 
     plots = pulse1.filter_example(
         filter_method=fm, title=title, x=x,
@@ -52,11 +56,11 @@ for i, fm in enumerate(filter_methods):
     PSRs_p1, PSR_p1 = pulse1.peakSidelobeRatio()
     defectWidths_p1, defectWidth_p1 = pulse1.peakWidths()
 
-    # %% U.S. PULSE, 2MHz
+    # %% US PULSE, 2MHz
 
     pulse2 = signal("signal_data/pulse_2MHznoise/pulse2mhz.dat",
                     "signal_data/pulse_2MHznoise/bscanpulse2.dat")
-    title = r'U.S. Pulse, $2\,$MHz'
+    title = r'US Pulse, $2\,$MHz'
 
     plots = pulse2.filter_example(
         filter_method=fm, title=title, trim=80, x=x,
@@ -230,6 +234,64 @@ for i, fm in enumerate(filter_methods):
     PSRs_gS, PSR_gS = golay_sum.peakSidelobeRatio()
     defectWidths_gS, defectWidth_gS = golay_sum.peakWidths()
 
+    # %% CLEAN Golay 3, 2MHz
+
+    added_noise = 0
+    gtrim = 100
+    if fm == 12:
+        gfilt1 = 1
+        gfilt2 = 2
+    else:
+        gfilt1 = fm
+        gfilt2 = 0
+
+    # MAIN SIGNAL
+
+    CLNgolay = signal("signal_data/golay_clean/golay.dat",
+                      "signal_data/golay_clean/bscan_golay.dat",
+                      noise_level=added_noise)
+    title = r'Clean Golay Code ($3$), $2\,$MHz'
+
+    plots = CLNgolay.filter_example(
+        filter_method=gfilt1, trim=gtrim, title=title, x=x,
+        plotresults=(0, 0, 0, 0, 0))
+
+    # COMPLEMENTARY SIGNAL
+
+    CLNgolayC = signal("signal_data/golay_clean/golayc.dat",
+                       "signal_data/golay_clean/bscan_golayc.dat",
+                       noise_level=added_noise)
+    title = r'Clean Golay Complementary Code ($3$), $2\,$MHz'
+
+    plotsC = CLNgolayC.filter_example(
+        filter_method=gfilt1, trim=gtrim, title=title, x=x,
+        plotresults=(0, 0, 0, 0, 0))
+
+    # SUM OF FILTERED SIGNALS
+
+    CLNgolay_sum = signal("signal_data/golay_clean/golay.dat",
+                          "signal_data/golay_clean/bscan_golay.dat",
+                          noise_level=added_noise)
+    title = r'Clean Golay Code ($3$), $2\,$MHz'
+
+    CLNgolay_sum.results = CLNgolay.results + CLNgolayC.results
+    CLNgolay_sum.data_a_C = CLNgolayC.data_a
+    CLNgolay_sum.autocorrelated_C = CLNgolayC.autocorrelated
+    CLNgolay_sum.autocorrelated_S = CLNgolay_sum.autocorrelated + CLNgolay_sum.autocorrelated_C
+
+    plotsS = CLNgolay_sum.filter_example(
+        signal=CLNgolay_sum.results, filter_method=gfilt2, remove_pulse=0,
+        title=title, x=x, golay_method=fm,
+        plotresults=plotresults, saveplot=save)
+
+    _,_,_,_ = CLNgolay_sum.find_defects([470, 10], plot=plotsS[-1], plotMyGuess=1)
+    plotsS[-1].save(title + 'with Peak Locations')
+
+    # maxCoords_gS, SNRs_gS, SNR_gS = CLNgolay_sum.SNR_example(
+    #     [500, 10], plotsS, plotMyGuess=1, window=np.array([40, 3]), trim=100)
+
+    # PSRs_gS, PSR_gS = CLNgolay_sum.peakSidelobeRatio()
+    # defectWidths_gS, defectWidth_gS = CLNgolay_sum.peakWidths()
 
 # %% COMPILE Current Stats
 
